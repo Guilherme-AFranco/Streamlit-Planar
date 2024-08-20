@@ -47,6 +47,7 @@ def plot_color_map(path_calib_tdsm, name_file, v_min, v_max):
   
   # Exibe o gráfico no Streamlit
   st.pyplot(fig)
+  plt.close()
 
 def plot_color_map_duo(path_calib_tdsm,media_total_calibrations,current_directory, save_path=""):
   name_file = path_calib_tdsm.split("\\")[-1]

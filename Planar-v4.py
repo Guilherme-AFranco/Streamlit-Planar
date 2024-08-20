@@ -13,6 +13,7 @@ import io
 import pymysql
 from nptdms import TdmsFile
 import pymysql
+import time
 
 from Insert_function import *
 from Calibration_analysis_function import *
@@ -253,13 +254,43 @@ elif page == "Pós Calibração":
             st.session_state.fr_all,st.session_state.VL_compar = pos_calibration_analysis(filtered_pos,filtered_matriz,VH_file_box,VL_file_box)
             # Realizar a tarefa de inclusão de variaveis
             st.write("Gráfrico gerado")
+    
+    col1, col2 = st.columns(2)
+
+    # with col1:
+    #     if st.session_state.fr_all:
+    #         fr_min,fr_max = min_max(st.session_state.fr_all)
+
+    #         # Interface para selecionar qual gráfico visualizar
+    #         selected_graph = st.selectbox("Escolha o gráfico", list(st.session_state.fr_all.keys()))
+            
+    #         # Exibe o gráfico correspondente
+    #         plot_color_map(st.session_state.fr_all[selected_graph]['fr1'][0].apply(pd.to_numeric, errors='coerce'), selected_graph, fr_min, fr_max)
 
     if st.session_state.fr_all:
-        fr_min,fr_max = min_max(st.session_state.fr_all)
+        fr_min, fr_max = min_max(st.session_state.fr_all)
+    fr_max = 500
 
-        # Criar os graficos
-        for idx,value in enumerate(st.session_state.fr_all):
-            plot_color_map(st.session_state.fr_all[value]['fr1'][0].apply(pd.to_numeric, errors='coerce'),value,fr_min,fr_max)
+    col1, col2, col3, col4 = st.columns(4)
 
+    if st.button("Gerar gráficos"):
+        if st.session_state.fr_all:
+            for idx, value in enumerate(st.session_state.fr_all):
+                if idx%4==0:
+                    with col1:
+                        # Exibe o gráfico correspondente
+                        plot_color_map(st.session_state.fr_all[value]['fr1'][0].apply(pd.to_numeric, errors='coerce'),value, fr_min, fr_max)
+                elif idx%4==1:
+                    with col2:
+                        # Exibe o gráfico correspondente
+                        plot_color_map(st.session_state.fr_all[value]['fr1'][0].apply(pd.to_numeric, errors='coerce'),value, fr_min, fr_max)
+                elif idx%4==2:
+                    with col3:
+                        # Exibe o gráfico correspondente
+                        plot_color_map(st.session_state.fr_all[value]['fr1'][0].apply(pd.to_numeric, errors='coerce'),value, fr_min, fr_max)
+                else:
+                    with col4:
+                        # Exibe o gráfico correspondente
+                        plot_color_map(st.session_state.fr_all[value]['fr1'][0].apply(pd.to_numeric, errors='coerce'),value, fr_min, fr_max)
         else:
-            st.write("Erro.")
+            st.write("Gere a análise primeiro")

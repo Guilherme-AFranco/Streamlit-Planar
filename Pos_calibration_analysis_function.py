@@ -160,3 +160,4 @@ def min_max(fr_all):
         fr_aux = fr_all[value]['fr1'][0].min().min()
         if fr_aux>fr_min:
             fr_min = fr_aux
+    return fr_min,fr_max
