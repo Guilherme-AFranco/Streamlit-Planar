@@ -218,5 +218,24 @@ elif page == "Visualização":
     st.dataframe(df_calibration)
 
 elif page == "Pos calibração":
-    df['Espessuras'] = df['Tables_in_base_de_dados'].apply(lambda x: extrair_valor(x))
-    df['Faixa'] = df['Tables_in_base_de_dados'].apply(lambda x: extrair_valor_pos_sublinhado(x))
+    pos_file_box = st.selectbox('Selecione a espessura da calibração', df['Tables_in_base_de_dados'].apply(lambda x: extrair_valor(x)).unique().tolist())
+    filtered_pos = df[df['Tables_in_base_de_dados'].str.startswith(pos_file_box)]['Tables_in_base_de_dados'].tolist() # Obtendo todos os arquivos da espessura selecionada
+    VH_file_box = st.selectbox('Selecione o VH', df['Tables_in_base_de_dados'])
+    
+    # Botão para realizar a ação
+    if st.button('Gerar análise'):
+        if pos_file_box and VH_file_box:
+            st.write("Gerando GIF...")
+            imagens = pos_calibracao(filtered_pos,VH_file_box)
+            # Realizar a tarefa de inclusão de gif
+            st.write("Gráfrico gerado")
+
+            # Criar um GIF a partir das imagens
+            gif_bytes = io.BytesIO()
+            imageio.mimsave(gif_bytes, imagens, format='GIF', duration=5)
+            gif_bytes.seek(0)
+            # Exibir o GIF em Streamlit
+            st.image(gif_bytes.read())
+
+        else:
+            st.write("Erro.")
