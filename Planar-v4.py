@@ -17,6 +17,7 @@ import pymysql
 from Insert_function import *
 from Calibration_analysis_function import *
 from Calibration_generator_function import *
+from Pos_calibration_analysis_function import *
 
 # --- Criar o dataframe
 dotenv.load_dotenv()
@@ -54,6 +55,9 @@ st.set_page_config(
 # Função para extrair o valor desejado
 def extrair_valor(valor):
     return valor.split('_')[0]
+
+def extrair_valor_matriz(valor):
+    return '_'.join(valor.split('_')[:2])
 
 def extrair_valor_pos_sublinhado(valor):
     return valor.split('_', 1)[1]
@@ -217,25 +221,45 @@ elif page == "Visualização":
     st.write(f'Valores obtidos para a calibração {table_name}:')
     st.dataframe(df_calibration)
 
-elif page == "Pos calibração":
-    pos_file_box = st.selectbox('Selecione a espessura da calibração', df['Tables_in_base_de_dados'].apply(lambda x: extrair_valor(x)).unique().tolist())
+# Conteúdo da Página 5
+elif page == "Pós Calibração":
+    # Criando colunas
+    col1, col2, col3 = st.columns(3)
+
+    # Exibindo a imagem na primeira coluna
+    with col1:
+        pos_file_box = st.selectbox('Selecione a espessura da calibração', df['Tables_in_base_de_dados'].apply(lambda x: extrair_valor(x)).unique().tolist())
+        VH_file_box = st.selectbox('Selecione o VH', df['Tables_in_base_de_dados'])
+
+    # Exibindo a imagem na primeira coluna
+    with col2:
+        matriz_file_box = st.selectbox('Selecione a matriz de calibração', df['Tables_in_base_de_dados'].apply(lambda x: extrair_valor_matriz(x)).unique().tolist())
+        VL_file_box = st.selectbox('Selecione o VL', df['Tables_in_base_de_dados'])
+
     filtered_pos = df[df['Tables_in_base_de_dados'].str.startswith(pos_file_box)]['Tables_in_base_de_dados'].tolist() # Obtendo todos os arquivos da espessura selecionada
-    VH_file_box = st.selectbox('Selecione o VH', df['Tables_in_base_de_dados'])
+    filtered_matriz = df[df['Tables_in_base_de_dados'].str.startswith(matriz_file_box)]['Tables_in_base_de_dados'].tolist() # Obtendo todos os arquivos da espessura selecionada
+
     
+    # Inicializando session state
+    if 'fr_all' not in st.session_state:
+        st.session_state.fr_all = None
+    if 'VL_compar' not in st.session_state:
+        st.session_state.VL_compar = None
+
     # Botão para realizar a ação
     if st.button('Gerar análise'):
         if pos_file_box and VH_file_box:
             st.write("Gerando GIF...")
-            imagens = pos_calibracao(filtered_pos,VH_file_box)
-            # Realizar a tarefa de inclusão de gif
+            st.session_state.fr_all,st.session_state.VL_compar = pos_calibration_analysis(filtered_pos,filtered_matriz,VH_file_box,VL_file_box)
+            # Realizar a tarefa de inclusão de variaveis
             st.write("Gráfrico gerado")
 
-            # Criar um GIF a partir das imagens
-            gif_bytes = io.BytesIO()
-            imageio.mimsave(gif_bytes, imagens, format='GIF', duration=5)
-            gif_bytes.seek(0)
-            # Exibir o GIF em Streamlit
-            st.image(gif_bytes.read())
+    if st.session_state.fr_all:
+        fr_min,fr_max = min_max(st.session_state.fr_all)
+
+        # Criar os graficos
+        for idx,value in enumerate(st.session_state.fr_all):
+            plot_color_map(st.session_state.fr_all[value]['fr1'][0].apply(pd.to_numeric, errors='coerce'),value,fr_min,fr_max)
 
         else:
             st.write("Erro.")

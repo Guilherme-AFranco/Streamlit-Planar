@@ -4,6 +4,7 @@ from IPython.display import display
 import pandas as pd
 import os
 import numpy as np
+import streamlit as st
 
 import matplotlib.pyplot as plt
 
@@ -34,23 +35,18 @@ def absoluteFilePaths(directory):
 
 #Plota individualmente um colormap dando um path de um arquivo tdms ou a partir dataframe
 def plot_color_map(path_calib_tdsm, name_file, v_min, v_max):
-  # if isinstance(path_calib_tdsm, pd.DataFrame):
-  #   fig, axs = plt.subplots(1, 1)
-  #   graf = axs.matshow(path_calib_tdsm, cmap='Blues', aspect='auto')
-  #   plt.colorbar(graf)
-  #   return
-  # conv = 2/(2**16-1)
-  # calib_tdsm = path_calib_tdsm.multiply(-1).multiply(conv) # leer VH y negarlo
-  # abc, cdf = mean_3(calib_tdsm)
-
   # fig, axs = plt.subplots(1, 1)
-  # fig.suptitle('Média Temporal: '+ name_file)
-  # graf = axs.matshow(abc.to_numpy(), cmap='Blues', aspect='auto') # aparentemente posso retirar o to_numpy()
+  # fig.suptitle('Média Temporal: ' + name_file)
+  # graf = axs.matshow(path_calib_tdsm.to_numpy(), cmap='Blues', aspect='auto', vmin=v_min, vmax=v_max)
+  # plt.colorbar(graf)
+  # plt.show()
   fig, axs = plt.subplots(1, 1)
   fig.suptitle('Média Temporal: ' + name_file)
   graf = axs.matshow(path_calib_tdsm.to_numpy(), cmap='Blues', aspect='auto', vmin=v_min, vmax=v_max)
   plt.colorbar(graf)
-  plt.show()
+  
+  # Exibe o gráfico no Streamlit
+  st.pyplot(fig)
 
 def plot_color_map_duo(path_calib_tdsm,media_total_calibrations,current_directory, save_path=""):
   name_file = path_calib_tdsm.split("\\")[-1]
