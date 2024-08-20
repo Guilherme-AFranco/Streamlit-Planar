@@ -65,7 +65,7 @@ with st.sidebar:
 # Criação de um seletor na barra lateral
     page = st.sidebar.radio(
         "", 
-        ("Inclusão/Exclusão de arquivos", "Gerador de matriz de calibração" , "Análise dos graficos", "Visualização")
+        ("Inclusão/Exclusão de arquivos", "Gerador de matriz de calibração" , "Análise dos graficos", "Visualização", "Pós Calibração")
         )
 
 # Conteúdo da Página 1
@@ -216,3 +216,7 @@ elif page == "Visualização":
     # Exibir o DataFrame
     st.write(f'Valores obtidos para a calibração {table_name}:')
     st.dataframe(df_calibration)
+
+elif page == "Pos calibração":
+    df['Espessuras'] = df['Tables_in_base_de_dados'].apply(lambda x: extrair_valor(x))
+    df['Faixa'] = df['Tables_in_base_de_dados'].apply(lambda x: extrair_valor_pos_sublinhado(x))
