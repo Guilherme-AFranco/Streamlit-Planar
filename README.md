@@ -41,6 +41,8 @@
 
 ### Criação do Container (Realizar apenas uma vez)
 - Abra o VSCode
+- Antes de criar o Container, é necessário abrir o arquivo `docker-compose.yml` e alterar o diretório para aquele que você deseja que fique salvo o Container dentro do desktop.
+- Utilize o arquivo `.env-example` para criar os dados de login do usuário que voce deseja. Para isso, copie o conteúdo deste arquivo e crie um novo arquivo com o nome `.env`, onde você incluirá estes dados copiados e alterará para os dados que deseja.
 - No terminal, execute "docker-compose up -d" para criação do Container que será utilizado.
 - Para isso, é necessário que o arquivo `docker-compose.yml` esteja na pasta em que se está com o terminal aberto.
 
