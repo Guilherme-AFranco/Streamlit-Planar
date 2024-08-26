@@ -46,5 +46,5 @@
 
 ### Abertura do Dashboard
 - Com toda a configuração realizada, basta abrir o terminal na pasta onde os arquivos estão alocados e digitar o comando "streamlit run Planar.py".
-- Note que Planar.py pode estar com nomes semelhantes a depender da versão final que foi criada. Até o momento estou utilizando a versão Planar-v4.py, então o código usado seria "streamlit run Planar-v4.py".
+- Note que Planar.py pode estar com nomes semelhantes a depender da versão final que foi criada. Até o momento estou utilizando a versão `Planar-v4.py`, então o código usado seria "streamlit run Planar-v4.py".
   
