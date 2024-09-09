@@ -163,3 +163,79 @@ def plot_matriz_calib(matriz):
     # Fechar a figura para liberar memória
     plt.close(fig)
     return buf
+
+def capture_calib(names_calib):
+    dotenv.load_dotenv()
+
+    # Configurações de conexão com o banco de dados
+    host=os.environ['MYSQL_HOST']
+    user=os.environ['MYSQL_USER']
+    password=os.environ['MYSQL_PASSWORD']
+    database=os.environ['MYSQL_DATABASE']
+    port=int(os.environ['MYSQL_PORT'])
+
+    # String de conexão
+    connection_string = f'mysql+mysqlconnector://{user}:{password}@{host}:{port}/{database}'
+
+    # Criar engine de conexão
+    engine = create_engine(connection_string)
+
+    path_matriz = {}
+    for name in names_calib:
+        df_matriz = f'{name}'
+        query = f'SELECT * FROM {name}'
+        path_matriz[df_matriz] = pd.read_sql(query,con=engine)
+
+    for key in path_matriz:
+        if 'id' in path_matriz[key].columns:
+            path_matriz[key] = path_matriz[key].drop(columns=['id'])
+        if 'Seconds' in path_matriz[key].columns:
+            path_matriz[key] = path_matriz[key].drop(columns=['Seconds'])
+    
+    grouped_matriz = {}
+    # Agrupar os DataFrames por prefixo
+    for key, df in path_matriz.items():
+        prefix = "_".join(key.split('_')[:2])
+        if prefix not in grouped_matriz:
+            grouped_matriz[prefix] = {}
+        grouped_matriz[prefix][key] = df
+    return grouped_matriz
+
+def f_x_calib(x,matriz):
+    y = []
+
+    a = np.mean(matriz)
+    b = np.mean(matriz)
+    c = np.mean(matriz)
+    d = np.mean(matriz)
+    e = np.mean(matriz)
+
+    y = a*x**4 + b*x**3 + c*x**2 + d*x + e
+    return y
+
+def plot_matriz_calib_calib(matriz,m):
+    # Criar um array de valores x
+    x = np.linspace(-1, 1, 400)  # 400 pontos de -1 a 1
+    # st.write((matriz['Matriz_calib']['Matriz_calib_00']))
+    # Plotar cada curva
+    fig, ax = plt.subplots(figsize=(6, 4))
+    if(m<10):
+        y = f_x_calib(x, matriz['Matriz_calib'][f'Matriz_calib_0{m}'])
+    else:
+        y = f_x_calib(x, matriz['Matriz_calib'][f'Matriz_calib_{m}'])
+    # for m in range(len(matriz)):
+    ax.plot(x, y)
+    ax.set_xlabel('Tensão (V)')
+    ax.set_ylabel('Amplitude')
+    ax.set_title(f'Curva de calibração Rx{m+1}')
+    ax.legend()
+    ax.grid(True)
+
+    # Converter a figura para um objeto BytesIO
+    buf = BytesIO()
+    fig.savefig(buf, format='png', bbox_inches='tight')
+    buf.seek(0)
+
+    # Fechar a figura para liberar memória
+    plt.close(fig)
+    return buf

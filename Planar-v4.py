@@ -14,6 +14,7 @@ import pymysql
 from nptdms import TdmsFile
 import pymysql
 import time
+import plotly.express as px
 
 from Insert_function import *
 from Calibration_analysis_function import *
@@ -158,7 +159,55 @@ elif page == "Gerador de matriz de calibração":
                         st.write("Matriz incluida.")
                     else:
                         st.write("Gere a equação antes.")
+
+    matriz_file_box = st.selectbox('Selecione a matriz de calibração', df['Tables_in_base_de_dados'].apply(lambda x: extrair_valor_matriz(x)).unique().tolist())
+    
+    if 'calib_fig' not in st.session_state:
+        st.session_state.calib_fig = None
+
+    # Inicializar uma flag para determinar se a análise foi feita
+    if 'analise_feita' not in st.session_state:
+        st.session_state.analise_feita = False
+
+    if st.button("Analise de matriz"):
+        # Dados para os gráficos
+        Rx_labels = [f"Rx{i}" for i in range(0, 13)]  # Nomes dos Rx (colunas)
+        values_calib = [12] * 13  # Valores arbitrários
+
+        st.session_state.Rx_labels = Rx_labels
+        st.session_state.values_calib = values_calib
         
+        filtered_matriz_calib = df[df['Tables_in_base_de_dados'].str.startswith(matriz_file_box)]['Tables_in_base_de_dados'].tolist() # Obtendo todos os arquivos da espessura selecionada
+
+        matriz_cali = capture_calib(filtered_matriz_calib)
+
+        # Guardar a matriz no estado da sessão para acesso posterior
+        st.session_state.matriz_cali = matriz_cali
+        
+        # Definir que a análise foi feita
+        st.session_state.analise_feita = True
+        
+    # Verificar se a análise já foi feita para exibir os botões Rx e o gráfico correspondente
+    if (st.session_state.analise_feita == True):
+        # Criação do gráfico de barras (primeiro exibir o gráfico)
+        fig = px.bar(x=st.session_state.Rx_labels, y=st.session_state.values_calib, labels={'x': 'Rx', 'y': 'Tx'}, title="Características da malha")
+        
+        # Exibição do gráfico interativo no Streamlit
+        st.plotly_chart(fig)
+
+        # Colunas para os botões Rx (depois exibir os botões abaixo do gráfico)
+        cols = st.columns(13)
+
+        # Simulação de clique nos botões
+        for i in range(13):
+            with cols[i]:
+                if st.button(f"Rx{i}"):
+                    st.session_state.calib_fig = plot_matriz_calib_calib(st.session_state.matriz_cali, i)
+
+        # Exibição da figura de calibração (se houver)
+        if st.session_state.calib_fig:
+            st.image(st.session_state.calib_fig, caption='Matriz de calibração', use_column_width=False, width=300)
+
 # Conteúdo da Página 3
 elif page == "Análise dos graficos":
 
@@ -255,6 +304,9 @@ elif page == "Pós Calibração":
             # Realizar a tarefa de inclusão de variaveis
             st.write("Gráfrico gerado")
     
+    # if st.button('Salvar gráfico no banco de dados.'):
+    #     pos_calibration_save(fr_all)
+
     col1, col2 = st.columns(2)
 
     # with col1:
@@ -275,22 +327,31 @@ elif page == "Pós Calibração":
 
     if st.button("Gerar gráficos"):
         if st.session_state.fr_all:
+            col_map = {0: col1, 1: col2, 2: col3, 3: col4}  # Mapeia os índices às colunas
+
             for idx, value in enumerate(st.session_state.fr_all):
-                if idx%4==0:
-                    with col1:
-                        # Exibe o gráfico correspondente
-                        plot_color_map(st.session_state.fr_all[value]['fr1'][0].apply(pd.to_numeric, errors='coerce'),value, fr_min, fr_max)
-                elif idx%4==1:
-                    with col2:
-                        # Exibe o gráfico correspondente
-                        plot_color_map(st.session_state.fr_all[value]['fr1'][0].apply(pd.to_numeric, errors='coerce'),value, fr_min, fr_max)
-                elif idx%4==2:
-                    with col3:
-                        # Exibe o gráfico correspondente
-                        plot_color_map(st.session_state.fr_all[value]['fr1'][0].apply(pd.to_numeric, errors='coerce'),value, fr_min, fr_max)
-                else:
-                    with col4:
-                        # Exibe o gráfico correspondente
-                        plot_color_map(st.session_state.fr_all[value]['fr1'][0].apply(pd.to_numeric, errors='coerce'),value, fr_min, fr_max)
+                col = col_map[idx % 4]  # Seleciona a coluna com base no índice
+                with col:
+                    # Exibe o gráfico correspondente
+                    plot_color_map(st.session_state.fr_all[value]['fr1'][0].apply(pd.to_numeric, errors='coerce'), value, fr_min, fr_max)
         else:
             st.write("Gere a análise primeiro")
+        #     for idx, value in enumerate(st.session_state.fr_all):
+        #         if idx%4==0:
+        #             with col1:
+        #                 # Exibe o gráfico correspondente
+        #                 plot_color_map(st.session_state.fr_all[value]['fr1'][0].apply(pd.to_numeric, errors='coerce'),value, fr_min, fr_max)
+        #         elif idx%4==1:
+        #             with col2:
+        #                 # Exibe o gráfico correspondente
+        #                 plot_color_map(st.session_state.fr_all[value]['fr1'][0].apply(pd.to_numeric, errors='coerce'),value, fr_min, fr_max)
+        #         elif idx%4==2:
+        #             with col3:
+        #                 # Exibe o gráfico correspondente
+        #                 plot_color_map(st.session_state.fr_all[value]['fr1'][0].apply(pd.to_numeric, errors='coerce'),value, fr_min, fr_max)
+        #         else:
+        #             with col4:
+        #                 # Exibe o gráfico correspondente
+        #                 plot_color_map(st.session_state.fr_all[value]['fr1'][0].apply(pd.to_numeric, errors='coerce'),value, fr_min, fr_max)
+        # else:
+        #     st.write("Gere a análise primeiro")
