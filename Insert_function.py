@@ -34,6 +34,7 @@ def insert_calibration(file_path):
         for index, valor in enumerate(calibrations_dict_path):
             for k, l in enumerate(calibrations_dict_path[valor]):
                 table_name = f'{valor}_{calibrations_dict_path[valor][k][-7:-5]}'
+                st.write(table_name)
                 with connection.cursor() as cursor:
                     sql = (
                         f'CREATE TABLE IF NOT EXISTS {table_name} ('

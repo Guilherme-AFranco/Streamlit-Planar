@@ -3,6 +3,7 @@ from tqdm import tqdm
 from PIL import Image
 import os
 import matplotlib.pyplot as plt
+import plotly.graph_objects as go
 import numpy as np
 import imageio
 import io
@@ -140,29 +141,41 @@ def f_x(x,matriz):
     
     return y
 
-def plot_matriz_calib(matriz):
+def f_x_calib(x,matriz):
+    y = []
+
+    a = np.mean(matriz['a'])
+    b = np.mean(matriz['b'])
+    c = np.mean(matriz['c'])
+    d = np.mean(matriz['d'])
+    e = np.mean(matriz['e'])
+
+    y.append(a*x**4 + b*x**3 + c*x**2 + d*x + e)
+    
+    return y
+
+def plot_matriz_calib_plotly(matriz):
     # Criar um array de valores x
     x = np.linspace(-1, 1, 400)  # 400 pontos de -1 a 1
 
-    # Plotar cada curva
-    fig, ax = plt.subplots(figsize=(6, 4))
+    # Criar uma figura Plotly
+    fig = go.Figure()
+
+    # Gerar as curvas e adicionar traços ao gráfico
     y = f_x(x, matriz)
     for m in range(len(matriz)):
-        ax.plot(x, y[m], label=f'Curva {m+1}')
-    ax.set_xlabel('Tensão (V)')
-    ax.set_ylabel('Amplitude')
-    ax.set_title('Curvas de Grau 4 - Matriz de calibração')
-    ax.legend()
-    ax.grid(True)
+        fig.add_trace(go.Scatter(x=x, y=y[m], mode='lines', name=f'Curva {m+1}'))
 
-    # Converter a figura para um objeto BytesIO
-    buf = BytesIO()
-    fig.savefig(buf, format='png', bbox_inches='tight')
-    buf.seek(0)
+    # Personalizar os eixos e o título
+    fig.update_layout(
+        title='Curvas de Grau 4 - Matriz de calibração',
+        xaxis_title='Tensão (V)',
+        yaxis_title='Amplitude',
+        showlegend=True,
+        template='plotly_white'
+    )
 
-    # Fechar a figura para liberar memória
-    plt.close(fig)
-    return buf
+    return fig  # Certificar-se de retornar um objeto `go.Figure`
 
 def capture_calib(names_calib):
     dotenv.load_dotenv()
@@ -201,41 +214,35 @@ def capture_calib(names_calib):
         grouped_matriz[prefix][key] = df
     return grouped_matriz
 
-def f_x_calib(x,matriz):
-    y = []
-
-    a = np.mean(matriz)
-    b = np.mean(matriz)
-    c = np.mean(matriz)
-    d = np.mean(matriz)
-    e = np.mean(matriz)
-
-    y = a*x**4 + b*x**3 + c*x**2 + d*x + e
-    return y
-
-def plot_matriz_calib_calib(matriz,m):
+def plot_matriz_calib_calib(matriz, m, name):
     # Criar um array de valores x
     x = np.linspace(-1, 1, 400)  # 400 pontos de -1 a 1
-    # st.write((matriz['Matriz_calib']['Matriz_calib_00']))
-    # Plotar cada curva
-    fig, ax = plt.subplots(figsize=(6, 4))
-    if(m<10):
-        y = f_x_calib(x, matriz['Matriz_calib'][f'Matriz_calib_0{m}'])
+    
+    # Definir o título e a curva para o Rx específico
+    if m < 10:
+        y = f_x_calib(x, matriz[name][f'{name}_0{m}'])
+        title = f'Curva de calibração Rx0{m}'
     else:
-        y = f_x_calib(x, matriz['Matriz_calib'][f'Matriz_calib_{m}'])
-    # for m in range(len(matriz)):
-    ax.plot(x, y)
-    ax.set_xlabel('Tensão (V)')
-    ax.set_ylabel('Amplitude')
-    ax.set_title(f'Curva de calibração Rx{m+1}')
-    ax.legend()
-    ax.grid(True)
+        y = f_x_calib(x, matriz[name][f'{name}_{m}'])
+        title = f'Curva de calibração Rx{m}'
 
-    # Converter a figura para um objeto BytesIO
-    buf = BytesIO()
-    fig.savefig(buf, format='png', bbox_inches='tight')
-    buf.seek(0)
+    # Criar o gráfico com Plotly
+    fig = go.Figure()
 
-    # Fechar a figura para liberar memória
-    plt.close(fig)
-    return buf
+    # Adicionar a curva de calibração
+    fig.add_trace(go.Scatter(x=x, y=y[0], mode='lines', name=f'Rx{m}'))
+
+    # Definir os títulos e rótulos dos eixos
+    fig.update_layout(
+        title=title,
+        xaxis_title='Tensão (V)',
+        yaxis_title='Amplitude',
+        showlegend=False,
+        template='plotly_dark'  # Opcional: escolhe um tema escuro
+    )
+
+    # Adicionar grade
+    fig.update_xaxes(showgrid=True)
+    fig.update_yaxes(showgrid=True)
+
+    return fig

@@ -76,51 +76,70 @@ with st.sidebar:
 
 # Conteúdo da Página 1
 if page == "Inclusão/Exclusão de arquivos":
-    # Caixa de entrada para o caminho da pasta
-    folder_path = st.text_input("Digite o caminho para inserir os arquivos (ex.: E:\Planar\Calib):")
+    cols = st.columns(3)
+    with cols[0]:
+        # Caixa de entrada para o caminho da pasta
+        folder_path = st.text_input("Digite o caminho para inserir os arquivos (ex.: E:\Planar\Calib):")
 
-    # Verifica se um caminho de pasta foi fornecido
-    if folder_path:
-        try:
-            st.write("Realizando inclusão dos arquivos selecionados...")
-            # Lista todos os arquivos na pasta
-            files_insert = insert_calibration(folder_path)
-            
-            st.write("Arquivos carregados corretamente.")
+        # Verifica se um caminho de pasta foi fornecido
+        if folder_path:
+            try:
+                st.write("Realizando inclusão dos arquivos selecionados...")
+                # Lista todos os arquivos na pasta
+                files_insert = insert_calibration(folder_path)
+                
+                st.write("Arquivos carregados corretamente.")
 
-        except:
-            st.write("Ocorreu um erro na importação.")
+            except:
+                st.write("Ocorreu um erro na importação.")
 
-    # Exclusão de arquivos
-    df['Arquivos alocados'] = df['Tables_in_base_de_dados']
+    with cols[1]:
+        # Exclusão de arquivos
+        df['Arquivos alocados'] = df['Tables_in_base_de_dados']
 
-    delet_file_box = st.multiselect('Selecione os arquivos para exclusão', df['Arquivos alocados'])
+        delet_file_box = st.multiselect('Selecione os arquivos para exclusão (essa exclusão é irreversível).', df['Arquivos alocados'])
+        
+        # Botão para realizar a ação
+        if st.button('Excluir arquivos'):
+            if delet_file_box:
+                st.write("Arquivo(s) selecionado(s):")
+                for arquivo in delet_file_box:
+                    st.write(arquivo)
+                
+                # Realizar exclusão dos arquivos selecionados
+                st.write("Realizando exclusão do(s) arquivo(s) selecionado(s)...")
+                for arquivo in delet_file_box:
+                    files_exclude = exclude_calibration(arquivo)
+                st.write("Exclusão concluída")
+
+            else:
+                st.write("Nenhum arquivo selecionado.")
+
+    with cols[2]:
+        st.write(df['Arquivos alocados'])
     
-    # Botão para realizar a ação
-    if st.button('Excluir arquivos'):
-        if delet_file_box:
-            st.write("Arquivo(s) selecionado(s):")
-            for arquivo in delet_file_box:
-                st.write(arquivo)
-            
-            # Realizar exclusão dos arquivos selecionados
-            st.write("Realizando exclusão do(s) arquivo(s) selecionado(s)...")
-            for arquivo in delet_file_box:
-                files_exclude = exclude_calibration(arquivo)
-            st.write("Exclusão concluída")
-
-        else:
-            st.write("Nenhum arquivo selecionado.")
-
-    st.write(df['Arquivos alocados'])
+    st.write('Obs.: Os nomes dos arquivos a incluir devem ser no formato \'XXXu-YY\'')
+    st.write('Onde XXX é a espessura do cilindro de calibração (400, 520, ...) e YY é a coleta realizada (00, 01, 02, 03, ...)')
 
 
 # Conteúdo da Página 2
 elif page == "Gerador de matriz de calibração":
+    cols = st.columns(2)
 
-    file_box = st.multiselect('Selecione a espessura da calibração', df['Tables_in_base_de_dados'].apply(lambda x: extrair_valor(x)).unique().tolist())
+    with cols[0]:
+        # Filtrar os nomes que começam com números
+        number_names = df[df['Tables_in_base_de_dados'].str.contains(r'^\d')]['Tables_in_base_de_dados']
+        # Exibir a caixa de seleção com os valores filtrados
+        file_box = st.multiselect('Selecione a espessura da calibração', number_names.apply(lambda x: extrair_valor(x)).unique().tolist())
     filtered = df[df['Tables_in_base_de_dados'].apply(lambda x: any(x.startswith(val) for val in file_box))]['Tables_in_base_de_dados'].tolist()
-    VH_box = st.selectbox('Selecione o VH', df['Tables_in_base_de_dados'])
+
+    with cols[1]:
+        # Filtrar os nomes que começam com "VH"
+        vh_names = df[df['Tables_in_base_de_dados'].str.startswith('VH')]['Tables_in_base_de_dados']
+
+        # Exibir a caixa de seleção com os valores filtrados
+        VH_box = st.selectbox('Selecione o VH', vh_names)
+        # VH_box = st.selectbox('Selecione o VH', df['Tables_in_base_de_dados'])
     
     # Inicializando session state
     if 'equacao_calib' not in st.session_state:
@@ -135,7 +154,7 @@ elif page == "Gerador de matriz de calibração":
             st.write("Gerando matriz de calibração...")
             st.session_state.equacao_calib = calibration_generator(filtered, VH_box)
             st.write("Matriz gerada")
-            st.session_state.matriz_fig = plot_matriz_calib(st.session_state.equacao_calib)
+            st.session_state.matriz_fig = plot_matriz_calib_plotly(st.session_state.equacao_calib)
 
     # Verificando se a matriz foi gerada para exibir os elementos subsequentes
     if st.session_state.matriz_fig:
@@ -144,7 +163,8 @@ elif page == "Gerador de matriz de calibração":
 
         # Exibindo a imagem na primeira coluna
         with col1:
-            st.image(st.session_state.matriz_fig, caption='Matriz de calibração', use_column_width=False, width=int(300))
+            # st.image(st.session_state.matriz_fig, caption='Matriz de calibração', use_column_width=False, width=int(300))
+            st.plotly_chart(st.session_state.matriz_fig, use_container_width=True)
 
         # Exibindo a imagem na primeira coluna
         with col2:
@@ -160,7 +180,13 @@ elif page == "Gerador de matriz de calibração":
                     else:
                         st.write("Gere a equação antes.")
 
-    matriz_file_box = st.selectbox('Selecione a matriz de calibração', df['Tables_in_base_de_dados'].apply(lambda x: extrair_valor_matriz(x)).unique().tolist())
+    cols = st.columns(2)
+
+    with cols[0]:
+        # Filtrar os nomes que começam com "VH"
+        matriz_names = df[df['Tables_in_base_de_dados'].str.startswith('Matriz')]['Tables_in_base_de_dados']
+
+        matriz_file_box = st.selectbox('Selecione a matriz de calibração', matriz_names.apply(lambda x: extrair_valor_matriz(x)).unique().tolist())
     
     if 'calib_fig' not in st.session_state:
         st.session_state.calib_fig = None
@@ -171,12 +197,12 @@ elif page == "Gerador de matriz de calibração":
 
     if st.button("Analise de matriz"):
         # Dados para os gráficos
-        Rx_labels = [f"Rx{i}" for i in range(0, 13)]  # Nomes dos Rx (colunas)
+        Rx_labels = [i for i in range(0, 13)]  # Nomes dos Rx (colunas)
         values_calib = [12] * 13  # Valores arbitrários
 
         st.session_state.Rx_labels = Rx_labels
         st.session_state.values_calib = values_calib
-        
+
         filtered_matriz_calib = df[df['Tables_in_base_de_dados'].str.startswith(matriz_file_box)]['Tables_in_base_de_dados'].tolist() # Obtendo todos os arquivos da espessura selecionada
 
         matriz_cali = capture_calib(filtered_matriz_calib)
@@ -190,31 +216,48 @@ elif page == "Gerador de matriz de calibração":
     # Verificar se a análise já foi feita para exibir os botões Rx e o gráfico correspondente
     if (st.session_state.analise_feita == True):
         # Criação do gráfico de barras (primeiro exibir o gráfico)
-        fig = px.bar(x=st.session_state.Rx_labels, y=st.session_state.values_calib, labels={'x': 'Rx', 'y': 'Tx'}, title="Características da malha")
+        fig = px.bar(x=st.session_state.Rx_labels, y=st.session_state.values_calib, labels={'x': '', 'y': 'Tx'}, title="Características da malha")
         
+        # Remover os números no eixo x
+        fig.update_xaxes(showticklabels=False)
+
         # Exibição do gráfico interativo no Streamlit
         st.plotly_chart(fig)
 
         # Colunas para os botões Rx (depois exibir os botões abaixo do gráfico)
-        cols = st.columns(13)
+        cols = st.columns(14)
 
         # Simulação de clique nos botões
         for i in range(13):
-            with cols[i]:
+            with cols[i+1]:
                 if st.button(f"Rx{i}"):
-                    st.session_state.calib_fig = plot_matriz_calib_calib(st.session_state.matriz_cali, i)
+                    st.session_state.calib_fig = plot_matriz_calib_calib(st.session_state.matriz_cali, i, matriz_file_box)
 
-        # Exibição da figura de calibração (se houver)
-        if st.session_state.calib_fig:
-            st.image(st.session_state.calib_fig, caption='Matriz de calibração', use_column_width=False, width=300)
+        cols = st.columns(2)
+        with cols[1]:
+            # Exibição da figura de calibração (se houver)
+            if 'calib_fig' in st.session_state:
+                st.plotly_chart(st.session_state.calib_fig)
 
 # Conteúdo da Página 3
 elif page == "Análise dos graficos":
 
-    gif_file_box = st.selectbox('Selecione a espessura da calibração', df['Tables_in_base_de_dados'].apply(lambda x: extrair_valor(x)).unique().tolist())
-    filtered_gif = df[df['Tables_in_base_de_dados'].str.startswith(gif_file_box)]['Tables_in_base_de_dados'].tolist() # Obtendo todos os arquivos da espessura selecionada
+    cols = st.columns(2)
+    # Filtrar os nomes que começam com números
+    number_names = df[df['Tables_in_base_de_dados'].str.contains(r'^\d')]['Tables_in_base_de_dados']
+
+    with cols[0]:
+        # Exibir a caixa de seleção com os valores filtrados
+        gif_file_box = st.multiselect('Selecione a espessura da calibração', number_names.apply(lambda x: extrair_valor(x)).unique().tolist())
+        filtered_gif = df[df['Tables_in_base_de_dados'].apply(lambda x: any(x.startswith(val) for val in gif_file_box))]['Tables_in_base_de_dados'].tolist()
+    # filtered_gif = df[df['Tables_in_base_de_dados'].str.startswith(gif_file_box)]['Tables_in_base_de_dados'].tolist() # Obtendo todos os arquivos da espessura selecionada
     #filtrado = [name[1:-1] for name in filtered_gif]
-    VH_file_box = st.selectbox('Selecione o VH', df['Tables_in_base_de_dados'])
+    
+    # Filtrar os nomes que começam com "VH"
+    vh_names = df[df['Tables_in_base_de_dados'].str.startswith('VH')]['Tables_in_base_de_dados']
+    with cols[1]:
+        # Exibir a caixa de seleção com os valores filtrados
+        VH_file_box = st.selectbox('Selecione o VH', vh_names)
     
     #st.write(filtrado)
     # Botão para realizar a ação
@@ -270,6 +313,19 @@ elif page == "Visualização":
     # Exibir o DataFrame
     st.write(f'Valores obtidos para a calibração {table_name}:')
     st.dataframe(df_calibration)
+
+    # Remover as colunas 'id' e 'segundos' do DataFrame
+    df_calibration_filtered = df_calibration.drop(columns=['id', 'Seconds'])
+
+    # Gerar heatmap utilizando Plotly
+    fig = px.imshow(df_calibration_filtered.values, 
+                    labels=dict(color="Valores"),
+                    x=list(df_calibration_filtered.columns), 
+                    y=df_calibration_filtered.index,
+                    title=f'Média Temporal: {table_name}')
+
+    # Exibir o gráfico no Streamlit
+    st.plotly_chart(fig)
 
 # Conteúdo da Página 5
 elif page == "Pós Calibração":
