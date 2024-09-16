@@ -58,23 +58,30 @@ def calibration_analysis(names_path,name_VH):
         if 'Seconds' in path_calibration[key].columns:
             path_calibration[key] = path_calibration[key].drop(columns=['Seconds'])
 
-    # Criação das figuras
-    figs = [[] for _ in range(len(path_calibration))]  # Inicializa a lista de listas
+    # # Criação das figuras
+    # figs = [[] for _ in range(len(path_calibration))]  # Inicializa a lista de listas
 
-    for index, elements in (enumerate(path_calibration)):
-    #    for paths in path_calibration[elements]:
-        fig = plot_color_map_trio(path_calibration[elements], elements, VHMAX)
-        figs[index].append(fig)  # Adiciona a figura na ordem correta
+    # for index, elements in (enumerate(path_calibration)):
+    # #    for paths in path_calibration[elements]:
+    #     fig = plot_color_map_trio(path_calibration[elements], elements, VHMAX)
+    #     figs[index].append(fig)  # Adiciona a figura na ordem correta
 
-    # Converter as figuras em imagens e armazenar em uma lista
-    imagens = []
-    for fig_list in figs:
-        for fig in fig_list:
-            buf = io.BytesIO()
-            fig.savefig(buf, format='png')
-            buf.seek(0)
-            img = Image.open(buf)
-            imagens.append(img)
-            plt.close(fig)  # Fechar a figura para liberar memória
+    # # Converter as figuras em imagens e armazenar em uma lista
+    # imagens = []
+    # for fig_list in figs:
+    #     for fig in fig_list:
+    #         buf = io.BytesIO()
+    #         fig.savefig(buf, format='png')
+    #         buf.seek(0)
+    #         img = Image.open(buf)
+    #         imagens.append(img)
+    #         plt.close(fig)  # Fechar a figura para liberar memória
 
-    return imagens
+    # Criação das figuras com Plotly
+    figs = []
+    for _, elements in enumerate(path_calibration):
+        fig = plot_color_map_trio_plotly(path_calibration[elements], elements, VHMAX)
+        figs.append(fig)  # Adiciona a figura
+
+    # return imagens
+    return figs  # Retorna as figuras Plotly diretamente

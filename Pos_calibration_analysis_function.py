@@ -13,7 +13,7 @@ from nptdms import TdmsFile
 from sqlalchemy import create_engine
 import pymysql
 
-def pos_calibration_analysis(names_path,names_calib,name_VH,name_VL):
+def pos_calibration_analysis(names_path,name_matriz,names_calib,name_VH,name_VL):
     dotenv.load_dotenv()
 
     # Configurações de conexão com o banco de dados
@@ -107,11 +107,11 @@ def pos_calibration_analysis(names_path,names_calib,name_VH,name_VL):
     VL_2200 = VL[name_VL].multiply(-1).multiply(conv)
     VLMax, not_concatened_VL = mean_3(VL_2200)# a informação na verdade é 32x16x25000 e querem a média na terceira dimenção
 
-    matriz_transf = {col: pd.DataFrame(index=range(len(grouped_matriz['Matriz_calib'])), columns=[f'Rx{str(i).zfill(2)}' for i in range(len(grouped_matriz['Matriz_calib']['Matriz_calib_01']))]) for col in ['a', 'b', 'c', 'd', 'e']}
+    matriz_transf = {col: pd.DataFrame(index=range(len(grouped_matriz[name_matriz])), columns=[f'Rx{str(i).zfill(2)}' for i in range(len(grouped_matriz[name_matriz][f'{name_matriz}_01']))]) for col in ['a', 'b', 'c', 'd', 'e']}
 
-    for i, val in enumerate(grouped_matriz['Matriz_calib']):  # Percorre as tabelas originais
+    for i, val in enumerate(grouped_matriz[name_matriz]):  # Percorre as tabelas originais
         for col in ['a', 'b', 'c', 'd', 'e']:  # Percorre as colunas
-            matriz_transf[col].loc[i] = grouped_matriz['Matriz_calib'][val][col].values
+            matriz_transf[col].loc[i] = grouped_matriz[name_matriz][val][col].values
 
     #from collections import ChainMap
     x_axis_original = 32

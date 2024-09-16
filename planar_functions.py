@@ -5,6 +5,8 @@ import pandas as pd
 import os
 import numpy as np
 import streamlit as st
+import plotly.graph_objs as go
+from plotly.subplots import make_subplots
 
 import matplotlib.pyplot as plt
 
@@ -48,6 +50,27 @@ def plot_color_map(path_calib_tdsm, name_file, v_min, v_max):
   # Exibe o gráfico no Streamlit
   st.pyplot(fig)
   plt.close()
+
+def plot_color_map_plotly(path_calib_tdsm, name_file, v_min, v_max):
+    # Cria a figura Heatmap com Plotly
+    fig = go.Figure(data=go.Heatmap(
+        z=path_calib_tdsm.to_numpy(),
+        colorscale='Blues',
+        zmin=v_min,
+        zmax=v_max,
+        colorbar=dict(title="", thickness=10)
+    ))
+    
+    # Adiciona o título
+    fig.update_layout(
+        title='Média Temporal: ' + name_file,
+        xaxis_title="Rx",
+        yaxis_title="Tx",
+        height=400, width=1200
+    )
+    
+    # Exibe o gráfico no Streamlit
+    st.plotly_chart(fig)
 
 def plot_color_map_duo(path_calib_tdsm,media_total_calibrations,current_directory, save_path=""):
   name_file = path_calib_tdsm.split("\\")[-1]
@@ -95,6 +118,73 @@ def plot_color_map_trio(path_calib_tdsm,name_file,media_total_calibrations):
   cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
   fig.colorbar(graf, cax=cbar_ax)
   return fig
+
+def plot_color_map_trio_plotly(path_calib_tdsm, name_file, media_total_calibrations):
+    conv = 2/(2**16-1)
+    calib_tdsm = path_calib_tdsm.multiply(-1).multiply(conv)
+    abc, cdf = mean_3(calib_tdsm)
+
+    # Configurando os subplots
+    fig = make_subplots(rows=1, cols=3, subplot_titles=["Média Temporal", "V-MED ou V-Max", "Div da média"],
+                        shared_yaxes=False, horizontal_spacing=0.05)
+
+    # Colormap 1
+    heatmap1 = go.Heatmap(z=abc.values, colorscale='Blues', showscale=True,
+                          colorbar=dict(title="", thickness=10, len=1.1, x=0.3))
+    # heatmap1 = go.Heatmap(z=abc.values, colorscale='Blues', showscale=False)
+    fig.add_trace(heatmap1, row=1, col=1)
+
+    # Colormap 2
+    heatmap2 = go.Heatmap(z=media_total_calibrations.values, colorscale='Blues', showscale=True,
+                          colorbar=dict(title="", thickness=10, len=1.1, x=0.65))
+    # heatmap2 = go.Heatmap(z=media_total_calibrations.values, colorscale='Blues', showscale=False)
+    fig.add_trace(heatmap2, row=1, col=2)
+
+    # Colormap 3
+    heatmap3 = go.Heatmap(z=abc.div(media_total_calibrations).values, colorscale='Blues', showscale=True,
+                          colorbar=dict(title="", thickness=10, len=1.1, x=1))
+    # heatmap3 = go.Heatmap(z=abc.div(media_total_calibrations).values, colorscale='Blues', showscale=False)
+    fig.add_trace(heatmap3, row=1, col=3)
+
+    # Configurando a barra de cores global
+    # fig.update_layout(
+    #     title=f'Média Temporal, V-MED ou V-Max, Div da média: {name_file}',
+    #     coloraxis=dict(colorscale='Blues'),
+    #     coloraxis_colorbar=dict(
+    #         title="Intensidade",
+    #         thicknessmode="pixels", thickness=20,
+    #         lenmode="fraction", len=0.8,
+    #         yanchor="middle", y=0.5,
+    #     ),
+    #     height=400, width=1200
+    # )
+    # fig.update_layout(
+    #     title=f'{name_file}',
+    #     height=400,  # Altura total
+    #     width=1200,  # Largura ajustada para 3 gráficos com espaço para as colorbars
+    #     # xaxis=dict(showticklabels=False),  # Remove números do eixo x
+    #     # xaxis2=dict(showticklabels=False),  # Remove números do eixo x do 2º gráfico
+    #     # xaxis3=dict(showticklabels=False),  # Remove números do eixo x do 3º gráfico
+    #     yaxis2=dict(showticklabels=False),  # Remove números do eixo y
+    #     yaxis3=dict(showticklabels=False),  # Remove números do eixo y
+    # )
+    fig.update_layout(
+        title={
+            'text': f'{name_file}',
+            'y': 0.9,  # Posição vertical do título (1.0 é o topo do gráfico)
+            'x': 0.5,  # Centraliza horizontalmente
+            'xanchor': 'center',  # Âncora do título no centro
+            'yanchor': 'top'  # Âncora do título na parte superior
+        },
+        height=400,  # Altura total
+        width=1200,  # Largura ajustada para 3 gráficos com espaço para as colorbars
+        yaxis2=dict(showticklabels=False),  # Remove números do eixo y
+        yaxis3=dict(showticklabels=False)   # Remove números do eixo y
+    )
+    # Aplicando a escala de cor para todos os gráficos
+    # fig.update_traces(coloraxis="coloraxis")
+
+    return fig
 
 def plot_color_map_together(path_calib_tdsm_list): #Plota em conjunto uma lista de path de arquivo tdms (precisa da lista já filtrada)
   fig, axs = plt.subplots(1, len(path_calib_tdsm_list))

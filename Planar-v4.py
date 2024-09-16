@@ -183,7 +183,7 @@ elif page == "Gerador de matriz de calibração":
     cols = st.columns(2)
 
     with cols[0]:
-        # Filtrar os nomes que começam com "VH"
+        # Filtrar os nomes que começam com "Matriz"
         matriz_names = df[df['Tables_in_base_de_dados'].str.startswith('Matriz')]['Tables_in_base_de_dados']
 
         matriz_file_box = st.selectbox('Selecione a matriz de calibração', matriz_names.apply(lambda x: extrair_valor_matriz(x)).unique().tolist())
@@ -242,13 +242,13 @@ elif page == "Gerador de matriz de calibração":
 # Conteúdo da Página 3
 elif page == "Análise dos graficos":
 
-    cols = st.columns(2)
+    cols = st.columns(3)
     # Filtrar os nomes que começam com números
     number_names = df[df['Tables_in_base_de_dados'].str.contains(r'^\d')]['Tables_in_base_de_dados']
 
     with cols[0]:
         # Exibir a caixa de seleção com os valores filtrados
-        gif_file_box = st.multiselect('Selecione a espessura da calibração', number_names.apply(lambda x: extrair_valor(x)).unique().tolist())
+        gif_file_box = st.selectbox('Selecione a espessura da calibração', number_names.apply(lambda x: extrair_valor(x)).unique().tolist())
         filtered_gif = df[df['Tables_in_base_de_dados'].apply(lambda x: any(x.startswith(val) for val in gif_file_box))]['Tables_in_base_de_dados'].tolist()
     # filtered_gif = df[df['Tables_in_base_de_dados'].str.startswith(gif_file_box)]['Tables_in_base_de_dados'].tolist() # Obtendo todos os arquivos da espessura selecionada
     #filtrado = [name[1:-1] for name in filtered_gif]
@@ -261,34 +261,78 @@ elif page == "Análise dos graficos":
     
     #st.write(filtrado)
     # Botão para realizar a ação
-    if st.button('Gerar gif'):
+    # if st.button('Gerar gif'):
+    #     if gif_file_box and VH_file_box:
+    #         st.write("Gerando GIF...")
+    #         imagens = calibration_analysis(filtered_gif,VH_file_box)
+    #         # Realizar a tarefa de inclusão de gif
+    #         st.write("Gif gerado")
+
+    #         # Criar um GIF a partir das imagens
+    #         gif_bytes = io.BytesIO()
+    #         imageio.mimsave(gif_bytes, imagens, format='GIF', duration=5)
+    #         gif_bytes.seek(0)
+    #         # Exibir o GIF em Streamlit
+    #         st.image(gif_bytes.read())
+
+    #     else:
+    #         st.write("Erro.")
+
+    # # Inicializar o estado da sessão para o índice do gráfico
+    # if 'graph_index' not in st.session_state:
+    #     st.session_state.graph_index = 0
+
+    # if st.button('Gerar gráficos'):
+    #     if 'filtered_gif' in locals() and 'VH_file_box' in locals():  # Verifica se as variáveis foram definidas
+    #         figs = calibration_analysis(filtered_gif, VH_file_box)
+
+    #         for fig in range(len(figs)):
+    #             # Exibe o gráfico atual baseado no índice armazenado
+    #             st.plotly_chart(figs[st.session_state.graph_index])
+
+    #             # Incrementa o índice para o próximo gráfico no próximo clique
+    #             st.session_state.graph_index += 1
+
+    #             # Reinicia o índice se chegar ao final da lista
+    #             if st.session_state.graph_index >= len(figs):
+    #                 # st.session_state.graph_index = 0
+    #                 break
+
+    #             # # st.write(f"Gráfico {st.session_state.graph_index + 1} gerado!")
+    #             # st.write(f"Gif gerado!")
+    #     else:
+    #         st.write("Erro: Arquivos não selecionados.")
+
+
+    if st.button('Gerar gráficos'):
         if gif_file_box and VH_file_box:
-            st.write("Gerando GIF...")
-            imagens = calibration_analysis(filtered_gif,VH_file_box)
-            # Realizar a tarefa de inclusão de gif
-            st.write("Gif gerado")
+            st.write("Gerando gráficos...")
 
-            # Criar um GIF a partir das imagens
-            gif_bytes = io.BytesIO()
-            imageio.mimsave(gif_bytes, imagens, format='GIF', duration=5)
-            gif_bytes.seek(0)
-            # Exibir o GIF em Streamlit
-            st.image(gif_bytes.read())
+            # Gera os gráficos Plotly
+            figs = calibration_analysis(filtered_gif, VH_file_box)
 
+            # Exibir os gráficos diretamente no Streamlit
+            for fig in figs:
+                st.plotly_chart(fig)  # Exibe o gráfico Plotly diretamente
+
+            # st.write("Gráficos gerados com sucesso!")
         else:
-            st.write("Erro.")
+            st.write("Erro: Arquivos não selecionados.")
 
 # Conteúdo da Página 4
 elif page == "Visualização":
     df['Espessuras'] = df['Tables_in_base_de_dados'].apply(lambda x: extrair_valor(x))
     df['Faixa'] = df['Tables_in_base_de_dados'].apply(lambda x: extrair_valor_pos_sublinhado(x))
 
-    # -- Criar o sidebar
-    with st.sidebar:
-        fEspessura = st.selectbox(
-            "Selecione a Espessura:",
-            options=df['Espessuras'].unique()
-        )
+    cols = st.columns(2)
+    # Filtrar os nomes que começam com números
+    number_names = df[df['Tables_in_base_de_dados'].str.contains(r'^\d')]['Tables_in_base_de_dados']
+
+    with cols[0]:
+        # Exibir a caixa de seleção com os valores filtrados
+        fEspessura = st.selectbox('Selecione a espessura da calibração', number_names.apply(lambda x: extrair_valor(x)).unique().tolist())
+    
+    with cols[1]:
         fFaixa = st.selectbox(
             "Selecione a Faixa utilizada:",
             options=df['Faixa'].unique()
@@ -307,6 +351,19 @@ elif page == "Visualização":
     # Ler dados do banco de dados e armazenar em um DataFrame
     df_calibration = pd.read_sql(sql, con=engine)
 
+    # Remover as colunas 'id' e 'segundos' do DataFrame
+    df_calibration_filtered = df_calibration.drop(columns=['id', 'Seconds'])
+
+    # Gerar heatmap utilizando Plotly
+    fig = px.imshow(df_calibration_filtered.values, 
+                    labels=dict(color="Intensidade"),
+                    x=list(df_calibration_filtered.columns), 
+                    y=df_calibration_filtered.index,
+                    title=f'Visualização (sem filtro/sem tratamento): {table_name}')
+
+    # Exibir o gráfico no Streamlit
+    st.plotly_chart(fig)
+
     # Exibir título da aplicação
     st.title('Tabela calibração')
 
@@ -314,33 +371,24 @@ elif page == "Visualização":
     st.write(f'Valores obtidos para a calibração {table_name}:')
     st.dataframe(df_calibration)
 
-    # Remover as colunas 'id' e 'segundos' do DataFrame
-    df_calibration_filtered = df_calibration.drop(columns=['id', 'Seconds'])
-
-    # Gerar heatmap utilizando Plotly
-    fig = px.imshow(df_calibration_filtered.values, 
-                    labels=dict(color="Valores"),
-                    x=list(df_calibration_filtered.columns), 
-                    y=df_calibration_filtered.index,
-                    title=f'Média Temporal: {table_name}')
-
-    # Exibir o gráfico no Streamlit
-    st.plotly_chart(fig)
-
 # Conteúdo da Página 5
 elif page == "Pós Calibração":
+    number_names = df[df['Tables_in_base_de_dados'].str.contains(r'^\d')]['Tables_in_base_de_dados']
+    vh_names = df[df['Tables_in_base_de_dados'].str.startswith('VH')]['Tables_in_base_de_dados']
+    vl_names = df[df['Tables_in_base_de_dados'].str.startswith('VL')]['Tables_in_base_de_dados']
+    matriz_names = df[df['Tables_in_base_de_dados'].str.startswith('Matriz')]['Tables_in_base_de_dados']
     # Criando colunas
     col1, col2, col3 = st.columns(3)
 
     # Exibindo a imagem na primeira coluna
     with col1:
-        pos_file_box = st.selectbox('Selecione a espessura da calibração', df['Tables_in_base_de_dados'].apply(lambda x: extrair_valor(x)).unique().tolist())
-        VH_file_box = st.selectbox('Selecione o VH', df['Tables_in_base_de_dados'])
+        pos_file_box = st.selectbox('Selecione a espessura da calibração', number_names.apply(lambda x: extrair_valor(x)).unique().tolist())
+        VH_file_box = st.selectbox('Selecione o VH', vh_names)
 
     # Exibindo a imagem na primeira coluna
     with col2:
-        matriz_file_box = st.selectbox('Selecione a matriz de calibração', df['Tables_in_base_de_dados'].apply(lambda x: extrair_valor_matriz(x)).unique().tolist())
-        VL_file_box = st.selectbox('Selecione o VL', df['Tables_in_base_de_dados'])
+        matriz_file_box = st.selectbox('Selecione a matriz de calibração', matriz_names.apply(lambda x: extrair_valor_matriz(x)).unique().tolist())
+        VL_file_box = st.selectbox('Selecione o VL', vl_names)
 
     filtered_pos = df[df['Tables_in_base_de_dados'].str.startswith(pos_file_box)]['Tables_in_base_de_dados'].tolist() # Obtendo todos os arquivos da espessura selecionada
     filtered_matriz = df[df['Tables_in_base_de_dados'].str.startswith(matriz_file_box)]['Tables_in_base_de_dados'].tolist() # Obtendo todos os arquivos da espessura selecionada
@@ -355,10 +403,10 @@ elif page == "Pós Calibração":
     # Botão para realizar a ação
     if st.button('Gerar análise'):
         if pos_file_box and VH_file_box:
-            st.write("Gerando GIF...")
-            st.session_state.fr_all,st.session_state.VL_compar = pos_calibration_analysis(filtered_pos,filtered_matriz,VH_file_box,VL_file_box)
+            st.write("Gerando análise...")
+            st.session_state.fr_all,st.session_state.VL_compar = pos_calibration_analysis(filtered_pos,matriz_file_box,filtered_matriz,VH_file_box,VL_file_box)
             # Realizar a tarefa de inclusão de variaveis
-            st.write("Gráfrico gerado")
+            st.write("Análise gerada")
     
     # if st.button('Salvar gráfico no banco de dados.'):
     #     pos_calibration_save(fr_all)
@@ -377,19 +425,19 @@ elif page == "Pós Calibração":
 
     if st.session_state.fr_all:
         fr_min, fr_max = min_max(st.session_state.fr_all)
-    fr_max = 500
+    fr_max = 425
 
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3 = st.columns(3)
 
     if st.button("Gerar gráficos"):
         if st.session_state.fr_all:
-            col_map = {0: col1, 1: col2, 2: col3, 3: col4}  # Mapeia os índices às colunas
+            col_map = {0: col1, 1: col2, 2: col3}  # Mapeia os índices às colunas
 
             for idx, value in enumerate(st.session_state.fr_all):
-                col = col_map[idx % 4]  # Seleciona a coluna com base no índice
+                col = col_map[idx % 3]  # Seleciona a coluna com base no índice
                 with col:
                     # Exibe o gráfico correspondente
-                    plot_color_map(st.session_state.fr_all[value]['fr1'][0].apply(pd.to_numeric, errors='coerce'), value, fr_min, fr_max)
+                    plot_color_map_plotly(st.session_state.fr_all[value]['fr1'][0].apply(pd.to_numeric, errors='coerce'), value, fr_min, fr_max)
         else:
             st.write("Gere a análise primeiro")
         #     for idx, value in enumerate(st.session_state.fr_all):
