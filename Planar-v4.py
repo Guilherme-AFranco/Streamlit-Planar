@@ -124,7 +124,7 @@ if page == "Inclusão/Exclusão de arquivos":
 
 # Conteúdo da Página 2
 elif page == "Gerador de matriz de calibração":
-    cols = st.columns(2)
+    cols = st.columns(3)
 
     with cols[0]:
         # Filtrar os nomes que começam com números
@@ -180,7 +180,7 @@ elif page == "Gerador de matriz de calibração":
                     else:
                         st.write("Gere a equação antes.")
 
-    cols = st.columns(2)
+    cols = st.columns(3)
 
     with cols[0]:
         # Filtrar os nomes que começam com "Matriz"
@@ -324,7 +324,7 @@ elif page == "Visualização":
     df['Espessuras'] = df['Tables_in_base_de_dados'].apply(lambda x: extrair_valor(x))
     df['Faixa'] = df['Tables_in_base_de_dados'].apply(lambda x: extrair_valor_pos_sublinhado(x))
 
-    cols = st.columns(2)
+    cols = st.columns(3)
     # Filtrar os nomes que começam com números
     number_names = df[df['Tables_in_base_de_dados'].str.contains(r'^\d')]['Tables_in_base_de_dados']
 
