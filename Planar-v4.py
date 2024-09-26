@@ -30,6 +30,7 @@ user=os.environ['MYSQL_USER']
 password=os.environ['MYSQL_PASSWORD']
 database=os.environ['MYSQL_DATABASE']
 port=int(os.environ['MYSQL_PORT'])
+cont_ID=os.environ['MYSQL_ID']
 
 # String de conexão
 connection_string = f'mysql+pymysql://{user}:{password}@{host}:{port}/{database}'
@@ -67,15 +68,46 @@ def extrair_valor_pos_sublinhado(valor):
 with st.sidebar:
     logo_teste = Image.open('./Imagens/Lemi-Logo.png')
     st.image(logo_teste, width=300)
-    st.subheader('MENU - DASHBOARD PLANAR')
-# Criação de um seletor na barra lateral
-    page = st.sidebar.radio(
-        "", 
-        ("Inclusão/Exclusão de arquivos", "Gerador de matriz de calibração" , "Análise dos graficos", "Visualização", "Pós Calibração")
-        )
+    # st.subheader('MENU - DASHBOARD PLANAR')
+
+# Adicionando um título à sidebar
+st.sidebar.title("Navegação - Planar")
+
+# Utilizando Markdown para organizar visualmente
+st.sidebar.markdown("---")  # Linha divisória
+
+# Criando o menu de navegação com ícones e cores
+page = st.sidebar.radio(
+    "Selecione a função desejada:", 
+    (
+        "📂 Inclusão/Exclusão de arquivos", 
+        "⚙️ Gerador de matriz de calibração", 
+        "📈 Análise dos gráficos", 
+        "🔍 Visualização", 
+        "📊 Pós Calibração"
+    )
+)
+
+# Separando os itens do menu com uma linha divisória
+st.sidebar.markdown("---")
+
+# Botão de saída
+if st.sidebar.button('Exit'):
+    # Comando para pausar/parar o container Docker (substitua '<container_id>' pelo seu container)
+    os.system(f'docker stop {cont_ID}')
+    
+    # Fecha o Streamlit
+    st.write("Aplicativo está sendo fechado...")
+    os._exit(0)  # Finaliza o Streamlit
+
+# # Criação de um seletor na barra lateral
+#     page = st.sidebar.radio(
+#         "", 
+#         ("Inclusão/Exclusão de arquivos", "Gerador de matriz de calibração" , "Análise dos graficos", "Visualização", "Pós Calibração")
+#         )
 
 # Conteúdo da Página 1
-if page == "Inclusão/Exclusão de arquivos":
+if page == "📂 Inclusão/Exclusão de arquivos":
     cols = st.columns(3)
     with cols[0]:
         # Caixa de entrada para o caminho da pasta
@@ -91,7 +123,7 @@ if page == "Inclusão/Exclusão de arquivos":
                 st.write("Arquivos carregados corretamente.")
 
             except:
-                st.write("Ocorreu um erro na importação.")
+                st.write("Ocorreu um erro na importação. Verifique se os dados estão no formato correto.")
 
     with cols[1]:
         # Exclusão de arquivos
@@ -123,7 +155,7 @@ if page == "Inclusão/Exclusão de arquivos":
 
 
 # Conteúdo da Página 2
-elif page == "Gerador de matriz de calibração":
+elif page == "⚙️ Gerador de matriz de calibração":
     cols = st.columns(3)
 
     with cols[0]:
@@ -152,9 +184,14 @@ elif page == "Gerador de matriz de calibração":
     if st.button('Gerar Matriz'):
         if file_box and VH_box:
             st.write("Gerando matriz de calibração...")
-            st.session_state.equacao_calib = calibration_generator(filtered, VH_box)
-            st.write("Matriz gerada")
+            try:
+                st.session_state.equacao_calib = calibration_generator(filtered, VH_box)
+                st.write("Matriz gerada")
+            except:
+                st.write("Erro na geração de calibração, verifique se existem 16 coletas de espessura e se os dados estão corretos.")
             st.session_state.matriz_fig = plot_matriz_calib_plotly(st.session_state.equacao_calib)
+        else:
+            st.write("Matriz/espessura(s) não selecionadas.")
 
     # Verificando se a matriz foi gerada para exibir os elementos subsequentes
     if st.session_state.matriz_fig:
@@ -169,14 +206,17 @@ elif page == "Gerador de matriz de calibração":
         # Exibindo a imagem na primeira coluna
         with col2:
             with st.form(key='save_form'):
-                nome_equacao_calib = st.text_input("Nome do arquivo de calibração (ex.: Matriz_calib)")
+                nome_equacao_calib = st.text_input("Nome do arquivo de calibração (ex.: Matriz_calibXX)")
                 submit_button = st.form_submit_button(label='Salvar equação no banco de dados')
 
                 if submit_button:
                     if nome_equacao_calib:
                         st.write("Incluindo matriz no banco de dados...")
-                        insert_matriz(st.session_state.equacao_calib, nome_equacao_calib)
-                        st.write("Matriz incluida.")
+                        try:
+                            insert_matriz(st.session_state.equacao_calib, nome_equacao_calib)
+                            st.write("Matriz incluida.")
+                        except:
+                            st.write("Nome incluso incorretamente.")
                     else:
                         st.write("Gere a equação antes.")
 
@@ -194,6 +234,8 @@ elif page == "Gerador de matriz de calibração":
     # Inicializar uma flag para determinar se a análise foi feita
     if 'analise_feita' not in st.session_state:
         st.session_state.analise_feita = False
+    if "selected_column" not in st.session_state:
+        st.session_state.selected_column = None
 
     if st.button("Analise de matriz"):
         # Dados para os gráficos
@@ -204,9 +246,10 @@ elif page == "Gerador de matriz de calibração":
         st.session_state.values_calib = values_calib
 
         filtered_matriz_calib = df[df['Tables_in_base_de_dados'].str.startswith(matriz_file_box)]['Tables_in_base_de_dados'].tolist() # Obtendo todos os arquivos da espessura selecionada
-
-        matriz_cali = capture_calib(filtered_matriz_calib)
-
+        try:
+            matriz_cali = capture_calib(filtered_matriz_calib)
+        except:
+            st.write("Erro na análise da matriz.")
         # Guardar a matriz no estado da sessão para acesso posterior
         st.session_state.matriz_cali = matriz_cali
         
@@ -214,13 +257,32 @@ elif page == "Gerador de matriz de calibração":
         st.session_state.analise_feita = True
         
     # Verificar se a análise já foi feita para exibir os botões Rx e o gráfico correspondente
-    if (st.session_state.analise_feita == True):
-        # Criação do gráfico de barras (primeiro exibir o gráfico)
-        fig = px.bar(x=st.session_state.Rx_labels, y=st.session_state.values_calib, labels={'x': '', 'y': 'Tx'}, title="Características da malha")
+    if st.session_state.analise_feita:
+        # Criação do gráfico de barras
+        colors = ['blue'] * 13  # Cor padrão para as barras
+        # colors[0] = 'red'
+        # Alterar a cor da coluna selecionada
+        if st.session_state.selected_column is not None:
+            colors[st.session_state.selected_column] = 'red'  # Mudar a cor para a coluna selecionada
+            # st.write(colors)
+            
+        fig = px.bar(
+            x=st.session_state.Rx_labels, 
+            y=st.session_state.values_calib, 
+            labels={'x': '', 'y': 'Tx'}, 
+            title="Características da malha",
+            # color_discrete_sequence=colors  # Aplicando as cores
+        )
+
+        # # Criação do gráfico de barras (primeiro exibir o gráfico)
+        # fig = px.bar(x=st.session_state.Rx_labels, y=st.session_state.values_calib, labels={'x': '', 'y': 'Tx'}, title="Características da malha")
         
         # Remover os números no eixo x
         fig.update_xaxes(showticklabels=False)
 
+        # Alterar manualmente as cores das barras
+        for i, bar in enumerate(fig.data[0].x):
+            fig.data[0].marker.color = colors
         # Exibição do gráfico interativo no Streamlit
         st.plotly_chart(fig)
 
@@ -231,16 +293,24 @@ elif page == "Gerador de matriz de calibração":
         for i in range(13):
             with cols[i+1]:
                 if st.button(f"Rx{i}"):
-                    st.session_state.calib_fig = plot_matriz_calib_calib(st.session_state.matriz_cali, i, matriz_file_box)
+                    st.session_state.selected_column = i  # Armazenar a coluna selecionada
+                    st.experimental_rerun()
+                    try:
+                        st.session_state.calib_fig = plot_matriz_calib_calib(st.session_state.matriz_cali, i, matriz_file_box)
+                    except:
+                        st.write("Erro na criação dos gráficos.")
 
         cols = st.columns(2)
-        with cols[1]:
+        with cols[0]:
             # Exibição da figura de calibração (se houver)
             if 'calib_fig' in st.session_state:
-                st.plotly_chart(st.session_state.calib_fig)
+                try:
+                    st.plotly_chart(st.session_state.calib_fig)
+                except:
+                    st.write("Selecione uma coluna.")
 
 # Conteúdo da Página 3
-elif page == "Análise dos graficos":
+elif page == "📈 Análise dos gráficos":
 
     cols = st.columns(3)
     # Filtrar os nomes que começam com números
@@ -309,7 +379,10 @@ elif page == "Análise dos graficos":
             st.write("Gerando gráficos...")
 
             # Gera os gráficos Plotly
-            figs = calibration_analysis(filtered_gif, VH_file_box)
+            try:
+                figs = calibration_analysis(filtered_gif, VH_file_box)
+            except:
+                st.write("Erro na análise, verifique se a espessura e o VH são coerentes.")
 
             # Exibir os gráficos diretamente no Streamlit
             for fig in figs:
@@ -320,14 +393,14 @@ elif page == "Análise dos graficos":
             st.write("Erro: Arquivos não selecionados.")
 
 # Conteúdo da Página 4
-elif page == "Visualização":
-    df['Espessuras'] = df['Tables_in_base_de_dados'].apply(lambda x: extrair_valor(x))
-    df['Faixa'] = df['Tables_in_base_de_dados'].apply(lambda x: extrair_valor_pos_sublinhado(x))
-
-    cols = st.columns(3)
+elif page == "🔍 Visualização":
     # Filtrar os nomes que começam com números
     number_names = df[df['Tables_in_base_de_dados'].str.contains(r'^\d')]['Tables_in_base_de_dados']
+    df['Espessuras'] = number_names.apply(lambda x: extrair_valor(x))
+    df['Faixa'] = number_names.apply(lambda x: extrair_valor_pos_sublinhado(x))
 
+    cols = st.columns(3)
+    # st.write(number_names)
     with cols[0]:
         # Exibir a caixa de seleção com os valores filtrados
         fEspessura = st.selectbox('Selecione a espessura da calibração', number_names.apply(lambda x: extrair_valor(x)).unique().tolist())
@@ -338,41 +411,43 @@ elif page == "Visualização":
             options=df['Faixa'].unique()
         )
 
-    #Tabela Qtde vendida por produto
     tab1_value_calibration = df.loc[(
         df['Espessuras'] == fEspessura) &
         (df['Faixa'] == fFaixa)
     ]
 
-    table_name = tab1_value_calibration['Tables_in_base_de_dados'].iloc[0]
-    # Consulta SQL
-    sql = f'SELECT * FROM {table_name}'
+    try:
+        table_name = tab1_value_calibration['Tables_in_base_de_dados'].iloc[0]
+        # Consulta SQL
+        sql = f'SELECT * FROM {table_name}'
 
-    # Ler dados do banco de dados e armazenar em um DataFrame
-    df_calibration = pd.read_sql(sql, con=engine)
+        # Ler dados do banco de dados e armazenar em um DataFrame
+        df_calibration = pd.read_sql(sql, con=engine)
 
-    # Remover as colunas 'id' e 'segundos' do DataFrame
-    df_calibration_filtered = df_calibration.drop(columns=['id', 'Seconds'])
+        # Remover as colunas 'id' e 'segundos' do DataFrame
+        df_calibration_filtered = df_calibration.drop(columns=['id', 'Seconds'])
 
-    # Gerar heatmap utilizando Plotly
-    fig = px.imshow(df_calibration_filtered.values, 
-                    labels=dict(color="Intensidade"),
-                    x=list(df_calibration_filtered.columns), 
-                    y=df_calibration_filtered.index,
-                    title=f'Visualização (sem filtro/sem tratamento): {table_name}')
+        # Gerar heatmap utilizando Plotly
+        fig = px.imshow(df_calibration_filtered.values, 
+                        labels=dict(color="Intensidade"),
+                        x=list(df_calibration_filtered.columns), 
+                        y=df_calibration_filtered.index,
+                        title=f'Visualização (sem filtro/sem tratamento): {table_name}')
 
-    # Exibir o gráfico no Streamlit
-    st.plotly_chart(fig)
+        # Exibir o gráfico no Streamlit
+        st.plotly_chart(fig)
 
-    # Exibir título da aplicação
-    st.title('Tabela calibração')
+        # Exibir título da aplicação
+        st.title('Tabela calibração')
 
-    # Exibir o DataFrame
-    st.write(f'Valores obtidos para a calibração {table_name}:')
-    st.dataframe(df_calibration)
+        # Exibir o DataFrame
+        st.write(f'Valores obtidos para a calibração {table_name}:')
+        st.dataframe(df_calibration)
+    except:
+        st.write("Espessura/Faixa não reconhecida.")
 
 # Conteúdo da Página 5
-elif page == "Pós Calibração":
+elif page == "📊 Pós Calibração":
     number_names = df[df['Tables_in_base_de_dados'].str.contains(r'^\d')]['Tables_in_base_de_dados']
     vh_names = df[df['Tables_in_base_de_dados'].str.startswith('VH')]['Tables_in_base_de_dados']
     vl_names = df[df['Tables_in_base_de_dados'].str.startswith('VL')]['Tables_in_base_de_dados']
@@ -402,11 +477,16 @@ elif page == "Pós Calibração":
 
     # Botão para realizar a ação
     if st.button('Gerar análise'):
-        if pos_file_box and VH_file_box:
+        if pos_file_box and VH_file_box and matriz_file_box and filtered_matriz and VL_file_box:
             st.write("Gerando análise...")
-            st.session_state.fr_all,st.session_state.VL_compar = pos_calibration_analysis(filtered_pos,matriz_file_box,filtered_matriz,VH_file_box,VL_file_box)
+            try:
+                st.session_state.fr_all,st.session_state.VL_compar = pos_calibration_analysis(filtered_pos,matriz_file_box,filtered_matriz,VH_file_box,VL_file_box)
+            except:
+                st.write("Erro na análise, verifique se as variáveis inclusas acima estão corretas.")
             # Realizar a tarefa de inclusão de variaveis
             st.write("Análise gerada")
+        else:
+            st.write("Selecione todas as caixas de seleção.")
     
     # if st.button('Salvar gráfico no banco de dados.'):
     #     pos_calibration_save(fr_all)
@@ -437,7 +517,10 @@ elif page == "Pós Calibração":
                 col = col_map[idx % 3]  # Seleciona a coluna com base no índice
                 with col:
                     # Exibe o gráfico correspondente
-                    plot_color_map_plotly(st.session_state.fr_all[value]['fr1'][0].apply(pd.to_numeric, errors='coerce'), value, fr_min, fr_max)
+                    try:
+                        plot_color_map_plotly(st.session_state.fr_all[value]['fr1'][0].apply(pd.to_numeric, errors='coerce'), value, fr_min, fr_max)
+                    except:
+                        st.write("Erro na plotagem, verifique se a análise é coerente.")
         else:
             st.write("Gere a análise primeiro")
         #     for idx, value in enumerate(st.session_state.fr_all):

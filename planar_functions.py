@@ -129,19 +129,22 @@ def plot_color_map_trio_plotly(path_calib_tdsm, name_file, media_total_calibrati
                         shared_yaxes=False, horizontal_spacing=0.05)
 
     # Colormap 1
-    heatmap1 = go.Heatmap(z=abc.values, colorscale='Blues', showscale=True,
+    # heatmap1 = go.Heatmap(z=abc.values, colorscale='Blues', showscale=True,
+    heatmap1 = go.Heatmap(z=abc.values, showscale=True,
                           colorbar=dict(title="", thickness=10, len=1.1, x=0.3))
     # heatmap1 = go.Heatmap(z=abc.values, colorscale='Blues', showscale=False)
     fig.add_trace(heatmap1, row=1, col=1)
 
     # Colormap 2
-    heatmap2 = go.Heatmap(z=media_total_calibrations.values, colorscale='Blues', showscale=True,
+    # heatmap2 = go.Heatmap(z=media_total_calibrations.values, colorscale='Blues', showscale=True,
+    heatmap2 = go.Heatmap(z=media_total_calibrations.values, showscale=True,
                           colorbar=dict(title="", thickness=10, len=1.1, x=0.65))
     # heatmap2 = go.Heatmap(z=media_total_calibrations.values, colorscale='Blues', showscale=False)
     fig.add_trace(heatmap2, row=1, col=2)
 
     # Colormap 3
-    heatmap3 = go.Heatmap(z=abc.div(media_total_calibrations).values, colorscale='Blues', showscale=True,
+    # heatmap3 = go.Heatmap(z=abc.div(media_total_calibrations).values, colorscale='Blues', showscale=True,
+    heatmap3 = go.Heatmap(z=abc.div(media_total_calibrations).values, showscale=True,
                           colorbar=dict(title="", thickness=10, len=1.1, x=1))
     # heatmap3 = go.Heatmap(z=abc.div(media_total_calibrations).values, colorscale='Blues', showscale=False)
     fig.add_trace(heatmap3, row=1, col=3)
