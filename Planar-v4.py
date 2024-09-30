@@ -233,6 +233,8 @@ elif page == "⚙️ Gerador de matriz de calibração":
     
     if 'calib_fig' not in st.session_state:
         st.session_state.calib_fig = None
+    if 'calib_coefs' not in st.session_state:
+        st.session_state.calib_coefs = None
 
     # Inicializar uma flag para determinar se a análise foi feita
     if 'analise_feita' not in st.session_state:
@@ -298,7 +300,7 @@ elif page == "⚙️ Gerador de matriz de calibração":
                 if st.button(f"Rx{i}"):
                     st.session_state.selected_column = i  # Armazenar a coluna selecionada
                     try:
-                        st.session_state.calib_fig = plot_matriz_calib_calib(st.session_state.matriz_cali, i, matriz_file_box)
+                        st.session_state.calib_fig, st.session_state.calib_coefs = plot_matriz_calib_calib(st.session_state.matriz_cali, i, matriz_file_box)
                     except:
                         st.write("Erro na criação dos gráficos.")
                     st.experimental_rerun()
@@ -309,6 +311,17 @@ elif page == "⚙️ Gerador de matriz de calibração":
             if 'calib_fig' in st.session_state:
                 try:
                     st.plotly_chart(st.session_state.calib_fig)
+                except:
+                    st.write("Selecione uma coluna.")
+        with cols[1]:
+            if 'calib_coefs' in st.session_state:
+                try:
+                    for _ in range(6):
+                        st.write('')
+                    st.write('Equação da curva:')
+                    st.write(f'f(v) = {st.session_state.calib_coefs[0]:.2f}.v^4+{st.session_state.calib_coefs[1]:.2f}.v^3+{st.session_state.calib_coefs[2]:.2f}.v^2+{st.session_state.calib_coefs[3]:.2f}.v+{st.session_state.calib_coefs[4]:.2f}')
+                    st.write('Onde:')
+                    st.write('v: tensão; f(v): espessura.')
                 except:
                     st.write("Selecione uma coluna.")
 

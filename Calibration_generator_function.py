@@ -143,6 +143,7 @@ def f_x(x,matriz):
 
 def f_x_calib(x,matriz):
     y = []
+    coefs = []
 
     a = np.mean(matriz['a'])
     b = np.mean(matriz['b'])
@@ -150,13 +151,14 @@ def f_x_calib(x,matriz):
     d = np.mean(matriz['d'])
     e = np.mean(matriz['e'])
 
+    coefs = [a, b, c, d, e]
     y.append(a*x**4 + b*x**3 + c*x**2 + d*x + e)
     
-    return y
+    return y, coefs
 
 def plot_matriz_calib_plotly(matriz):
     # Criar um array de valores x
-    x = np.linspace(-1, 1, 400)  # 400 pontos de -1 a 1
+    x = np.linspace(0, 2, 400)  # 400 pontos de -1 a 1
 
     # Criar uma figura Plotly
     fig = go.Figure()
@@ -164,13 +166,13 @@ def plot_matriz_calib_plotly(matriz):
     # Gerar as curvas e adicionar traços ao gráfico
     y = f_x(x, matriz)
     for m in range(len(matriz)):
-        fig.add_trace(go.Scatter(x=x, y=y[m], mode='lines', name=f'Curva {m+1}'))
+        fig.add_trace(go.Scatter(x=y[m], y=x, mode='lines', name=f'Curva {m+1}'))
 
     # Personalizar os eixos e o título
     fig.update_layout(
         title='Curvas de Grau 4 - Matriz de calibração',
-        xaxis_title='Tensão (V)',
-        yaxis_title='Amplitude',
+        xaxis_title='Espessura (10^-6 m)',
+        yaxis_title='Tensão (V)',
         showlegend=True,
         template='plotly_white'
     )
@@ -216,27 +218,27 @@ def capture_calib(names_calib):
 
 def plot_matriz_calib_calib(matriz, m, name):
     # Criar um array de valores x
-    x = np.linspace(-1, 1, 400)  # 400 pontos de -1 a 1
+    x = np.linspace(0, 2, 400)  # 400 pontos de -1 a 1
     
     # Definir o título e a curva para o Rx específico
     if m < 10:
-        y = f_x_calib(x, matriz[name][f'{name}_0{m}'])
+        y, coefs = f_x_calib(x, matriz[name][f'{name}_0{m}'])
         title = f'Curva de calibração Rx0{m}'
     else:
-        y = f_x_calib(x, matriz[name][f'{name}_{m}'])
+        y, coefs = f_x_calib(x, matriz[name][f'{name}_{m}'])
         title = f'Curva de calibração Rx{m}'
 
     # Criar o gráfico com Plotly
     fig = go.Figure()
 
     # Adicionar a curva de calibração
-    fig.add_trace(go.Scatter(x=x, y=y[0], mode='lines', name=f'Rx{m}'))
+    fig.add_trace(go.Scatter(x=y[0], y=x, mode='lines', name=f'Rx{m}'))
 
     # Definir os títulos e rótulos dos eixos
     fig.update_layout(
         title=title,
-        xaxis_title='Tensão (V)',
-        yaxis_title='Amplitude',
+        xaxis_title='Espessura (10^-6 m)',
+        yaxis_title='Tensão (V)',
         showlegend=False,
         template='plotly_dark'  # Opcional: escolhe um tema escuro
     )
@@ -245,4 +247,4 @@ def plot_matriz_calib_calib(matriz, m, name):
     fig.update_xaxes(showgrid=True)
     fig.update_yaxes(showgrid=True)
 
-    return fig
+    return fig, coefs
