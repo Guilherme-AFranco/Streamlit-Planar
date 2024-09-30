@@ -111,7 +111,7 @@ if page == "📂 Inclusão/Exclusão de arquivos":
     cols = st.columns(3)
     with cols[0]:
         # Caixa de entrada para o caminho da pasta
-        folder_path = st.text_input("Digite o caminho para inserir os arquivos (ex.: E:\Planar\Calib):")
+        folder_path = st.text_input("Digite o caminho para inserir os arquivos (ex.: E:\\Planar\\Calib):")
 
         # Verifica se um caminho de pasta foi fornecido
         if folder_path:
@@ -184,12 +184,15 @@ elif page == "⚙️ Gerador de matriz de calibração":
     if st.button('Gerar Matriz'):
         if file_box and VH_box:
             st.write("Gerando matriz de calibração...")
-            try:
-                st.session_state.equacao_calib = calibration_generator(filtered, VH_box)
-                st.write("Matriz gerada")
-            except:
-                st.write("Erro na geração de calibração, verifique se existem 16 coletas de espessura e se os dados estão corretos.")
-            st.session_state.matriz_fig = plot_matriz_calib_plotly(st.session_state.equacao_calib)
+            if len(filtered) == 16:
+                try:
+                    st.session_state.equacao_calib = calibration_generator(filtered, VH_box)
+                    st.write("Matriz gerada")
+                except:
+                    st.write("Erro na geração de calibração, verifique se os dados estão corretos.")
+                st.session_state.matriz_fig = plot_matriz_calib_plotly(st.session_state.equacao_calib)
+            else:
+                st.write("Erro na geração de calibração, verifique se existem 16 coletas de espessura.")
         else:
             st.write("Matriz/espessura(s) não selecionadas.")
 
@@ -294,11 +297,11 @@ elif page == "⚙️ Gerador de matriz de calibração":
             with cols[i+1]:
                 if st.button(f"Rx{i}"):
                     st.session_state.selected_column = i  # Armazenar a coluna selecionada
-                    st.experimental_rerun()
                     try:
                         st.session_state.calib_fig = plot_matriz_calib_calib(st.session_state.matriz_cali, i, matriz_file_box)
                     except:
                         st.write("Erro na criação dos gráficos.")
+                    st.experimental_rerun()
 
         cols = st.columns(2)
         with cols[0]:
