@@ -166,8 +166,11 @@ def plot_matriz_calib_plotly(matriz):
     # Gerar as curvas e adicionar traços ao gráfico
     y = f_x(x, matriz)
     for m in range(len(matriz)):
-        fig.add_trace(go.Scatter(x=y[m], y=x, mode='lines', name=f'Curva {m+1}'))
-
+        # fig.add_trace(go.Scatter(x=y[m], y=x, mode='lines', name=f'Curva {m+1}'))
+        if m<9:
+            fig.add_trace(go.Scatter(x=y[m], y=x, mode='lines', name=f'Rx0{m+1}'))
+        else:
+            fig.add_trace(go.Scatter(x=y[m], y=x, mode='lines', name=f'Rx{m+1}'))
     # Personalizar os eixos e o título
     fig.update_layout(
         title='Curvas de Grau 4 - Matriz de calibração',

@@ -244,10 +244,13 @@ elif page == "⚙️ Gerador de matriz de calibração":
 
     if st.button("Analise de matriz"):
         # Dados para os gráficos
-        Rx_labels = [i for i in range(0, 13)]  # Nomes dos Rx (colunas)
-        values_calib = [12] * 13  # Valores arbitrários
+        # Rx_labels = [i for i in range(0, 13)]  # Nomes dos Rx (colunas)
+        # values_calib = [12] * 13  # Valores arbitrários
+        Tx_labels = [f'{i:02}' for i in range(1, 14)]  # Gera uma lista de '01' a '13'
+        values_calib = [16] * 13  # Valores arbitrários
 
-        st.session_state.Rx_labels = Rx_labels
+        # st.session_state.Rx_labels = Rx_labels
+        st.session_state.Tx_labels = Tx_labels
         st.session_state.values_calib = values_calib
 
         filtered_matriz_calib = df[df['Tables_in_base_de_dados'].str.startswith(matriz_file_box)]['Tables_in_base_de_dados'].tolist() # Obtendo todos os arquivos da espessura selecionada
@@ -272,9 +275,12 @@ elif page == "⚙️ Gerador de matriz de calibração":
             # st.write(colors)
             
         fig = px.bar(
-            x=st.session_state.Rx_labels, 
-            y=st.session_state.values_calib, 
-            labels={'x': '', 'y': 'Tx'}, 
+            # x=st.session_state.Rx_labels, 
+            # y=st.session_state.values_calib, 
+            # labels={'x': '', 'y': 'Tx'}, 
+            y=st.session_state.Tx_labels, 
+            x=st.session_state.values_calib, 
+            labels={'x': 'Rx', 'y': 'Tx'}, 
             title="Características da malha",
             # color_discrete_sequence=colors  # Aplicando as cores
         )
@@ -283,7 +289,7 @@ elif page == "⚙️ Gerador de matriz de calibração":
         # fig = px.bar(x=st.session_state.Rx_labels, y=st.session_state.values_calib, labels={'x': '', 'y': 'Tx'}, title="Características da malha")
         
         # Remover os números no eixo x
-        fig.update_xaxes(showticklabels=False)
+        # fig.update_xaxes(showticklabels=False)
 
         # Alterar manualmente as cores das barras
         for i, bar in enumerate(fig.data[0].x):
@@ -294,16 +300,28 @@ elif page == "⚙️ Gerador de matriz de calibração":
         # Colunas para os botões Rx (depois exibir os botões abaixo do gráfico)
         cols = st.columns(14)
 
-        # Simulação de clique nos botões
-        for i in range(13):
-            with cols[i+1]:
-                if st.button(f"Rx{i}"):
-                    st.session_state.selected_column = i  # Armazenar a coluna selecionada
-                    try:
-                        st.session_state.calib_fig, st.session_state.calib_coefs = plot_matriz_calib_calib(st.session_state.matriz_cali, i, matriz_file_box)
-                    except:
-                        st.write("Erro na criação dos gráficos.")
-                    st.experimental_rerun()
+        # # Simulação de clique nos botões
+        # for i in range(13):
+        #     with cols[i+1]:
+        #         if st.button(f"Rx{i}"):
+        #             st.session_state.selected_column = i  # Armazenar a coluna selecionada
+        #             try:
+        #                 st.session_state.calib_fig, st.session_state.calib_coefs = plot_matriz_calib_calib(st.session_state.matriz_cali, i, matriz_file_box)
+        #             except:
+        #                 st.write("Erro na criação dos gráficos.")
+        #             st.experimental_rerun()
+        cols = st.columns(5)
+        with cols[0]:
+            Tx_option = st.selectbox("Selecione um Tx:", st.session_state.Tx_labels)
+            selected_index = st.session_state.Tx_labels.index(Tx_option)
+            # Quando uma opção é selecionada
+            if st.button(f"Gerar curva"):
+                st.session_state.selected_column = selected_index  # Armazenar a coluna selecionada
+                try:
+                    st.session_state.calib_fig, st.session_state.calib_coefs = plot_matriz_calib_calib(st.session_state.matriz_cali, selected_index, matriz_file_box)
+                except Exception as e:
+                    st.write("Erro na criação dos gráficos:", e)
+                st.experimental_rerun()
 
         cols = st.columns(2)
         with cols[0]:
@@ -427,6 +445,12 @@ elif page == "🔍 Visualização":
             options=df['Faixa'].unique()
         )
 
+    # with cols[2]:
+    #     fValue = st.selectbox(
+    #         "Selecione a coleta:",
+    #         options=df['Faixa'].unique()
+    #     )
+
     tab1_value_calibration = df.loc[(
         df['Espessuras'] == fEspessura) &
         (df['Faixa'] == fFaixa)
@@ -443,11 +467,17 @@ elif page == "🔍 Visualização":
         # Remover as colunas 'id' e 'segundos' do DataFrame
         df_calibration_filtered = df_calibration.drop(columns=['id', 'Seconds'])
 
+        with cols[2]:
+            fValue = st.selectbox(
+                "Selecione a coleta:",
+                options=range((len(df_calibration_filtered['Rx00'])+1)//16)
+            )
+        # st.write(df_calibration_filtered.iloc[fValue*16:fValue*16+16,:].values)
         # Gerar heatmap utilizando Plotly
-        fig = px.imshow(df_calibration_filtered.values, 
+        fig = px.imshow(df_calibration_filtered.iloc[fValue*16:fValue*16+16,:].values, 
                         labels=dict(color="Intensidade"),
-                        x=list(df_calibration_filtered.columns), 
-                        y=df_calibration_filtered.index,
+                        x=list(df_calibration_filtered.iloc[fValue*16:fValue*16+16,:].columns), 
+                        y=df_calibration_filtered.iloc[fValue*16:fValue*16+16,:].index,
                         title=f'Visualização (sem filtro/sem tratamento): {table_name}')
 
         # Exibir o gráfico no Streamlit
