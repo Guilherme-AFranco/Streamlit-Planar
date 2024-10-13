@@ -246,9 +246,8 @@ elif page == "⚙️ Gerador de matriz de calibração":
         # Dados para os gráficos
         # Rx_labels = [i for i in range(0, 13)]  # Nomes dos Rx (colunas)
         # values_calib = [12] * 13  # Valores arbitrários
-        Tx_labels = [f'{i:02}' for i in range(1, 14)]  # Gera uma lista de '01' a '13'
-        values_calib = [16] * 13  # Valores arbitrários
-
+        Tx_labels = [f'Tx{i:02}' for i in range(1, 14)]  # Gera uma lista de '01' a '13'
+        values_calib = [16 for _ in range(1, 14)]
         # st.session_state.Rx_labels = Rx_labels
         st.session_state.Tx_labels = Tx_labels
         st.session_state.values_calib = values_calib
@@ -280,7 +279,7 @@ elif page == "⚙️ Gerador de matriz de calibração":
             # labels={'x': '', 'y': 'Tx'}, 
             y=st.session_state.Tx_labels, 
             x=st.session_state.values_calib, 
-            labels={'x': 'Rx', 'y': 'Tx'}, 
+            labels={'x': 'Rx', 'y': ''}, 
             title="Características da malha",
             # color_discrete_sequence=colors  # Aplicando as cores
         )
@@ -336,10 +335,11 @@ elif page == "⚙️ Gerador de matriz de calibração":
                 try:
                     for _ in range(6):
                         st.write('')
-                    st.write('Equação da curva:')
-                    st.write(f'f(v) = {st.session_state.calib_coefs[0]:.2f}.v^4+{st.session_state.calib_coefs[1]:.2f}.v^3+{st.session_state.calib_coefs[2]:.2f}.v^2+{st.session_state.calib_coefs[3]:.2f}.v+{st.session_state.calib_coefs[4]:.2f}')
-                    st.write('Onde:')
-                    st.write('v: tensão; f(v): espessura.')
+                    if st.session_state.calib_coefs:
+                        st.write('Equação da curva:')
+                        st.write(f'f(v) = {st.session_state.calib_coefs[0]:.2f}.v^4+{st.session_state.calib_coefs[1]:.2f}.v^3+{st.session_state.calib_coefs[2]:.2f}.v^2+{st.session_state.calib_coefs[3]:.2f}.v+{st.session_state.calib_coefs[4]:.2f}')
+                        st.write('Onde:')
+                        st.write('v: tensão; f(v): espessura.')
                 except:
                     st.write("Selecione uma coluna.")
 
