@@ -52,25 +52,31 @@ def plot_color_map(path_calib_tdsm, name_file, v_min, v_max):
   plt.close()
 
 def plot_color_map_plotly(path_calib_tdsm, name_file, v_min, v_max):
-    # Cria a figura Heatmap com Plotly
-    fig = go.Figure(data=go.Heatmap(
-        z=path_calib_tdsm.to_numpy(),
-        colorscale='Blues',
-        zmin=v_min,
-        zmax=v_max,
-        colorbar=dict(title="", thickness=10)
-    ))
-    
-    # Adiciona o título
-    fig.update_layout(
-        title='Média Temporal: ' + name_file,
-        xaxis_title="Rx",
-        yaxis_title="Tx",
-        height=400, width=1200
-    )
-    
-    # Exibe o gráfico no Streamlit
-    st.plotly_chart(fig)
+  # Cria a figura Heatmap com Plotly
+  fig = go.Figure(data=go.Heatmap(
+      z=path_calib_tdsm.to_numpy(),
+      x=[f'Rx{i:02}' for i in range(1,17)],
+      y=[f'Tx{i:02}' for i in range(1,14)],
+      colorscale='Blues',
+      zmin=v_min,
+      zmax=v_max,
+      colorbar=dict(title="", thickness=10)
+  ))
+  
+  # Adiciona o título
+  fig.update_layout(
+      title={
+        'text': 'Média Temporal: ' + name_file,
+        'x': 0.5,  # Centraliza o título
+        'xanchor': 'center'  # Alinha o título no centro
+      },
+      # xaxis_title="Rx",
+      # yaxis_title="Tx",
+      height=400, width=1200
+  )
+  
+  # Exibe o gráfico no Streamlit
+  st.plotly_chart(fig)
 
 def plot_color_map_duo(path_calib_tdsm,media_total_calibrations,current_directory, save_path=""):
   name_file = path_calib_tdsm.split("\\")[-1]
@@ -123,28 +129,29 @@ def plot_color_map_trio_plotly(path_calib_tdsm, name_file, media_total_calibrati
     conv = 2/(2**16-1)
     calib_tdsm = path_calib_tdsm.multiply(-1).multiply(conv)
     abc, cdf = mean_3(calib_tdsm)
-
+    rótulos_x = [f'Rx{i:02}' for i in range(1, 17)]
+    rótulos_y = [f'Tx{i:02}' for i in range(1, 32)]
     # Configurando os subplots
     fig = make_subplots(rows=1, cols=3, subplot_titles=["Média Temporal", "V-MED ou V-Max", "Div da média"],
                         shared_yaxes=False, horizontal_spacing=0.05)
 
     # Colormap 1
     # heatmap1 = go.Heatmap(z=abc.values, colorscale='Blues', showscale=True,
-    heatmap1 = go.Heatmap(z=abc.values, showscale=True,
+    heatmap1 = go.Heatmap(z=abc.values, x=rótulos_x, y=rótulos_y, showscale=True,
                           colorbar=dict(title="", thickness=10, len=1.1, x=0.3))
     # heatmap1 = go.Heatmap(z=abc.values, colorscale='Blues', showscale=False)
     fig.add_trace(heatmap1, row=1, col=1)
 
     # Colormap 2
     # heatmap2 = go.Heatmap(z=media_total_calibrations.values, colorscale='Blues', showscale=True,
-    heatmap2 = go.Heatmap(z=media_total_calibrations.values, showscale=True,
+    heatmap2 = go.Heatmap(z=media_total_calibrations.values, x=rótulos_x, y=rótulos_y, showscale=True,
                           colorbar=dict(title="", thickness=10, len=1.1, x=0.65))
     # heatmap2 = go.Heatmap(z=media_total_calibrations.values, colorscale='Blues', showscale=False)
     fig.add_trace(heatmap2, row=1, col=2)
 
     # Colormap 3
     # heatmap3 = go.Heatmap(z=abc.div(media_total_calibrations).values, colorscale='Blues', showscale=True,
-    heatmap3 = go.Heatmap(z=abc.div(media_total_calibrations).values, showscale=True,
+    heatmap3 = go.Heatmap(z=abc.div(media_total_calibrations).values, x=rótulos_x, y=rótulos_y, showscale=True,
                           colorbar=dict(title="", thickness=10, len=1.1, x=1))
     # heatmap3 = go.Heatmap(z=abc.div(media_total_calibrations).values, colorscale='Blues', showscale=False)
     fig.add_trace(heatmap3, row=1, col=3)

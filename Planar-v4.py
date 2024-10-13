@@ -82,9 +82,9 @@ page = st.sidebar.radio(
     (
         "📂 Inclusão/Exclusão de arquivos", 
         "⚙️ Gerador de matriz de calibração", 
-        "📈 Análise dos gráficos", 
-        "🔍 Visualização", 
-        "📊 Pós Calibração"
+        "🔍 Análise dos dados adquiridos", 
+        "📊 Análise das médias", 
+        "📈 Análise em função do polinomio"
     )
 )
 
@@ -152,7 +152,6 @@ if page == "📂 Inclusão/Exclusão de arquivos":
     
     st.write('Obs.: Os nomes dos arquivos a incluir devem ser no formato \'XXXu-YY\'')
     st.write('Onde XXX é a espessura do cilindro de calibração (400, 520, ...) e YY é a coleta realizada (00, 01, 02, 03, ...)')
-
 
 # Conteúdo da Página 2
 elif page == "⚙️ Gerador de matriz de calibração":
@@ -343,8 +342,80 @@ elif page == "⚙️ Gerador de matriz de calibração":
                 except:
                     st.write("Selecione uma coluna.")
 
+# Conteúdo da Página 4
+elif page == "🔍 Análise dos dados adquiridos":
+    # Filtrar os nomes que começam com números
+    number_names = df[df['Tables_in_base_de_dados'].str.contains(r'^\d')]['Tables_in_base_de_dados']
+    df['Espessuras'] = number_names.apply(lambda x: extrair_valor(x))
+    df['Faixa'] = number_names.apply(lambda x: extrair_valor_pos_sublinhado(x))
+
+    cols = st.columns(3)
+    # st.write(number_names)
+    with cols[0]:
+        # Exibir a caixa de seleção com os valores filtrados
+        fEspessura = st.selectbox('Selecione a espessura da calibração', number_names.apply(lambda x: extrair_valor(x)).unique().tolist())
+    
+    with cols[1]:
+        fFaixa = st.selectbox(
+            "Selecione a Faixa utilizada:",
+            options=df['Faixa'].unique()
+        )
+
+    # with cols[2]:
+    #     fValue = st.selectbox(
+    #         "Selecione a coleta:",
+    #         options=df['Faixa'].unique()
+    #     )
+
+    tab1_value_calibration = df.loc[(
+        df['Espessuras'] == fEspessura) &
+        (df['Faixa'] == fFaixa)
+    ]
+
+    try:
+        table_name = tab1_value_calibration['Tables_in_base_de_dados'].iloc[0]
+        # Consulta SQL
+        sql = f'SELECT * FROM {table_name}'
+
+        # Ler dados do banco de dados e armazenar em um DataFrame
+        df_calibration = pd.read_sql(sql, con=engine)
+
+        # Remover as colunas 'id' e 'segundos' do DataFrame
+        df_calibration_filtered = df_calibration.drop(columns=['id', 'Seconds'])
+
+        with cols[2]:
+            fValue = st.selectbox(
+                "Selecione a coleta:",
+                options=range((len(df_calibration_filtered['Rx00'])+1)//13)
+            )
+        # st.write(df_calibration_filtered.iloc[fValue*16:fValue*16+16,:].values)
+        # Gerar heatmap utilizando Plotly
+        fig = px.imshow(df_calibration_filtered.iloc[fValue*13:fValue*13+13,:].values, 
+                        labels=dict(color="Intensidade"),
+                        x=[f'Rx{i:02}' for i in range(1,17)], 
+                        y=[f'Tx{i:02}' for i in range(1,14)],#df_calibration_filtered.iloc[fValue*13:fValue*13+13,:].index,
+                        title=f'Visualização (sem filtro/sem tratamento): {table_name}')
+        
+        # Centraliza o título com update_layout
+        fig.update_layout(
+            title_x=0.5,  # Centraliza o título
+            title_xanchor='center'  # Alinha o título no centro
+        )
+
+        # Exibir o gráfico no Streamlit
+        st.plotly_chart(fig)
+
+        # Exibir título da aplicação
+        st.title('Tabela calibração')
+
+        # Exibir o DataFrame
+        st.write(f'Valores obtidos para a calibração {table_name}:')
+        st.dataframe(df_calibration)
+    except:
+        st.write("Espessura/Faixa não reconhecida.")
+
 # Conteúdo da Página 3
-elif page == "📈 Análise dos gráficos":
+elif page == "📊 Análise das médias":
 
     cols = st.columns(3)
     # Filtrar os nomes que começam com números
@@ -426,74 +497,8 @@ elif page == "📈 Análise dos gráficos":
         else:
             st.write("Erro: Arquivos não selecionados.")
 
-# Conteúdo da Página 4
-elif page == "🔍 Visualização":
-    # Filtrar os nomes que começam com números
-    number_names = df[df['Tables_in_base_de_dados'].str.contains(r'^\d')]['Tables_in_base_de_dados']
-    df['Espessuras'] = number_names.apply(lambda x: extrair_valor(x))
-    df['Faixa'] = number_names.apply(lambda x: extrair_valor_pos_sublinhado(x))
-
-    cols = st.columns(3)
-    # st.write(number_names)
-    with cols[0]:
-        # Exibir a caixa de seleção com os valores filtrados
-        fEspessura = st.selectbox('Selecione a espessura da calibração', number_names.apply(lambda x: extrair_valor(x)).unique().tolist())
-    
-    with cols[1]:
-        fFaixa = st.selectbox(
-            "Selecione a Faixa utilizada:",
-            options=df['Faixa'].unique()
-        )
-
-    # with cols[2]:
-    #     fValue = st.selectbox(
-    #         "Selecione a coleta:",
-    #         options=df['Faixa'].unique()
-    #     )
-
-    tab1_value_calibration = df.loc[(
-        df['Espessuras'] == fEspessura) &
-        (df['Faixa'] == fFaixa)
-    ]
-
-    try:
-        table_name = tab1_value_calibration['Tables_in_base_de_dados'].iloc[0]
-        # Consulta SQL
-        sql = f'SELECT * FROM {table_name}'
-
-        # Ler dados do banco de dados e armazenar em um DataFrame
-        df_calibration = pd.read_sql(sql, con=engine)
-
-        # Remover as colunas 'id' e 'segundos' do DataFrame
-        df_calibration_filtered = df_calibration.drop(columns=['id', 'Seconds'])
-
-        with cols[2]:
-            fValue = st.selectbox(
-                "Selecione a coleta:",
-                options=range((len(df_calibration_filtered['Rx00'])+1)//16)
-            )
-        # st.write(df_calibration_filtered.iloc[fValue*16:fValue*16+16,:].values)
-        # Gerar heatmap utilizando Plotly
-        fig = px.imshow(df_calibration_filtered.iloc[fValue*16:fValue*16+16,:].values, 
-                        labels=dict(color="Intensidade"),
-                        x=list(df_calibration_filtered.iloc[fValue*16:fValue*16+16,:].columns), 
-                        y=df_calibration_filtered.iloc[fValue*16:fValue*16+16,:].index,
-                        title=f'Visualização (sem filtro/sem tratamento): {table_name}')
-
-        # Exibir o gráfico no Streamlit
-        st.plotly_chart(fig)
-
-        # Exibir título da aplicação
-        st.title('Tabela calibração')
-
-        # Exibir o DataFrame
-        st.write(f'Valores obtidos para a calibração {table_name}:')
-        st.dataframe(df_calibration)
-    except:
-        st.write("Espessura/Faixa não reconhecida.")
-
 # Conteúdo da Página 5
-elif page == "📊 Pós Calibração":
+elif page == "📈 Análise em função do polinomio":
     number_names = df[df['Tables_in_base_de_dados'].str.contains(r'^\d')]['Tables_in_base_de_dados']
     vh_names = df[df['Tables_in_base_de_dados'].str.startswith('VH')]['Tables_in_base_de_dados']
     vl_names = df[df['Tables_in_base_de_dados'].str.startswith('VL')]['Tables_in_base_de_dados']
