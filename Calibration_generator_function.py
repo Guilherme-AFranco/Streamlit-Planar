@@ -251,3 +251,48 @@ def plot_matriz_calib_calib(matriz, m, name):
     fig.update_yaxes(showgrid=True)
 
     return fig, coefs
+
+def plot_planar_view(i_row=None):
+    # Gerar os dados para tx_values (Transmissões)
+    tx_values = []
+    for i in range(1, 14):
+        tx_values.append(f'Tx{i:02}')  # Adiciona valor Tx01, Tx02, etc.
+
+    # Gerar os dados para rx_values (Receptores)
+    rx_values = []
+    for i in range(1, 17):
+        rx_values.append(f'Rx{i:02}')  # Adiciona valor Rx01, Rx02, etc.
+
+    # Criar uma matriz de valores para o heatmap (usando valores binários de transmissão)
+    heatmap_data = []
+    row = [0] * 16  # Criando uma linha com treze 1's
+    for _ in rx_values:
+        heatmap_data.append(row)  # Adiciona a linha à matriz de dados
+
+    if i_row != None:
+        heatmap_data[i_row] = [1]*16
+
+    # Criar o gráfico de calor com Plotly
+    fig = go.Figure(data=go.Heatmap(
+        z=heatmap_data,
+        x=rx_values,
+        y=tx_values,
+        zmin=0,
+        zmax=1,
+        showscale=False,
+        # colorscale='Viridis'  # Escala de cores
+    ))
+
+    # Título e labels
+    fig.update_layout(
+        title={
+            'text': 'Modelo estrutural do planar',
+            'y': 0.9,  # Posição vertical do título (1.0 é o topo do gráfico)
+            'x': 0.5,  # Centraliza horizontalmente
+            'xanchor': 'center',  # Âncora do título no centro
+            'yanchor': 'top'  # Âncora do título na parte superior
+        },
+        xaxis_title='Receptores (Rx)',
+        yaxis_title='Transmissões (Tx)'
+    )
+    return fig, tx_values

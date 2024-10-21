@@ -238,19 +238,18 @@ elif page == "⚙️ Gerador de matriz de calibração":
     # Inicializar uma flag para determinar se a análise foi feita
     if 'analise_feita' not in st.session_state:
         st.session_state.analise_feita = False
+    if 'selected_idx' not in st.session_state:
+        st.session_state.selected_idx = None
     if "selected_column" not in st.session_state:
         st.session_state.selected_column = None
+    if "tx_values" not in st.session_state:
+        st.session_state.tx_values = None
 
+    if "botao" not in st.session_state:
+        st.session_state.botao = None
+
+    # st.session_state.botao = st.button("Analise de matriz")
     if st.button("Analise de matriz"):
-        # Dados para os gráficos
-        # Rx_labels = [i for i in range(0, 13)]  # Nomes dos Rx (colunas)
-        # values_calib = [12] * 13  # Valores arbitrários
-        Tx_labels = [f'Tx{i:02}' for i in range(1, 14)]  # Gera uma lista de '01' a '13'
-        values_calib = [16 for _ in range(1, 14)]
-        # st.session_state.Rx_labels = Rx_labels
-        st.session_state.Tx_labels = Tx_labels
-        st.session_state.values_calib = values_calib
-
         filtered_matriz_calib = df[df['Tables_in_base_de_dados'].str.startswith(matriz_file_box)]['Tables_in_base_de_dados'].tolist() # Obtendo todos os arquivos da espessura selecionada
         try:
             matriz_cali = capture_calib(filtered_matriz_calib)
@@ -258,63 +257,26 @@ elif page == "⚙️ Gerador de matriz de calibração":
             st.write("Erro na análise da matriz.")
         # Guardar a matriz no estado da sessão para acesso posterior
         st.session_state.matriz_cali = matriz_cali
-        
+
         # Definir que a análise foi feita
         st.session_state.analise_feita = True
-        
+
     # Verificar se a análise já foi feita para exibir os botões Rx e o gráfico correspondente
     if st.session_state.analise_feita:
-        # Criação do gráfico de barras
-        colors = ['blue'] * 13  # Cor padrão para as barras
-        # colors[0] = 'red'
-        # Alterar a cor da coluna selecionada
-        if st.session_state.selected_column is not None:
-            colors[st.session_state.selected_column] = 'red'  # Mudar a cor para a coluna selecionada
-            # st.write(colors)
-            
-        fig = px.bar(
-            # x=st.session_state.Rx_labels, 
-            # y=st.session_state.values_calib, 
-            # labels={'x': '', 'y': 'Tx'}, 
-            y=st.session_state.Tx_labels, 
-            x=st.session_state.values_calib, 
-            labels={'x': 'Rx', 'y': ''}, 
-            title="Características da malha",
-            # color_discrete_sequence=colors  # Aplicando as cores
-        )
-
-        # # Criação do gráfico de barras (primeiro exibir o gráfico)
-        # fig = px.bar(x=st.session_state.Rx_labels, y=st.session_state.values_calib, labels={'x': '', 'y': 'Tx'}, title="Características da malha")
+        if st.session_state.selected_idx:
+            planar_fig, st.session_state.tx_values = plot_planar_view(st.session_state.selected_idx)
+        else:
+            planar_fig, st.session_state.tx_values = plot_planar_view()
         
-        # Remover os números no eixo x
-        # fig.update_xaxes(showticklabels=False)
+        st.plotly_chart(planar_fig)
 
-        # Alterar manualmente as cores das barras
-        for i, bar in enumerate(fig.data[0].x):
-            fig.data[0].marker.color = colors
-        # Exibição do gráfico interativo no Streamlit
-        st.plotly_chart(fig)
-
-        # Colunas para os botões Rx (depois exibir os botões abaixo do gráfico)
-        cols = st.columns(14)
-
-        # # Simulação de clique nos botões
-        # for i in range(13):
-        #     with cols[i+1]:
-        #         if st.button(f"Rx{i}"):
-        #             st.session_state.selected_column = i  # Armazenar a coluna selecionada
-        #             try:
-        #                 st.session_state.calib_fig, st.session_state.calib_coefs = plot_matriz_calib_calib(st.session_state.matriz_cali, i, matriz_file_box)
-        #             except:
-        #                 st.write("Erro na criação dos gráficos.")
-        #             st.experimental_rerun()
         cols = st.columns(5)
         with cols[0]:
-            Tx_option = st.selectbox("Selecione um Tx:", st.session_state.Tx_labels)
-            selected_index = st.session_state.Tx_labels.index(Tx_option)
+            Tx_option = st.selectbox("Selecione um Tx:", st.session_state.tx_values)
+            selected_index = st.session_state.tx_values.index(Tx_option)
             # Quando uma opção é selecionada
             if st.button(f"Gerar curva"):
-                st.session_state.selected_column = selected_index  # Armazenar a coluna selecionada
+                st.session_state.selected_idx = selected_index
                 try:
                     st.session_state.calib_fig, st.session_state.calib_coefs = plot_matriz_calib_calib(st.session_state.matriz_cali, selected_index, matriz_file_box)
                 except Exception as e:
