@@ -1,4 +1,4 @@
-version: "3.9"
+# version: "3.9"
 services: 
   mysql_lemi:
     env_file:
@@ -12,7 +12,7 @@ services:
       - --collation-server=utf8mb4_unicode_ci
       - --innodb_force_recovery=0
     volumes: 
-      - E:/TCC/1sem-2024/Estudo_SQL/Udemy/Estudo_MySQL/Teste1/mysql_data:/var/lib/mysql
+      - E:\TCC\1sem-2024/mysql_data:/var/lib/mysql
     ports:
       - 3306:3306
     environment:

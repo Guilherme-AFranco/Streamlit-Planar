@@ -22,7 +22,7 @@ $form.Controls.Add($labelTitle)
 
 # Cria uma caixa de seleção para o container 1
 $checkbox1 = New-Object System.Windows.Forms.CheckBox
-$checkbox1.Text = "Laptop Guilherme (6df)"
+$checkbox1.Text = "Laptop Guilherme (e5e)"
 $checkbox1.Font = New-Object System.Drawing.Font("Arial", 10)
 $checkbox1.AutoSize = $true  # Ajusta o tamanho automaticamente
 $checkbox1.Location = New-Object System.Drawing.Point(30, 70)
@@ -71,11 +71,11 @@ $buttonStart.Add_Click({
 
     # Inicializa o container escolhido em segundo plano
     if ($checkbox1.Checked) {
-        $status = Get-ContainerStatus "6df053478b9e"
+        $status = Get-ContainerStatus "e5e103b53684"
         if ($status -eq "paused") {
-            Start-Process "docker" -ArgumentList "unpause 6df053478b9e"
+            Start-Process "docker" -ArgumentList "unpause e5e103b53684"
         } elseif ($status -eq "exited" -or $status -eq "created") {
-            Start-Process "docker" -ArgumentList "start 6df053478b9e"
+            Start-Process "docker" -ArgumentList "start e5e103b53684"
         }
     }
     elseif ($checkbox2.Checked) {
@@ -92,12 +92,13 @@ $buttonStart.Add_Click({
 
     # Ativa o ambiente virtual e roda o Streamlit em segundo plano
     # Ativa o ambiente virtual
-        Set-Location -Path "E:\TCC\1sem-2024\Estudo_Streamlit"  # Altere para o caminho correto da sua pasta
-        .\venv_Steamlit\Scripts\Activate
+        Set-Location -Path "E:\TCC\1sem-2024\Streamlit-Oficial"  # Altere para o caminho correto da sua pasta
+        .\venv\Scripts\activate
 
         # Roda o Streamlit
         streamlit run Planar-v4.py
         # Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd 'E:\TCC\1sem-2024\Estudo_Streamlit'; .\venv_Steamlit\Scripts\Activate; streamlit run Planar-v4.py"
+        [System.Windows.Forms.MessageBox]::Show("Rodou streamlit.")
 
     # Mostra uma mensagem informando que o processo foi iniciado
     # [System.Windows.Forms.MessageBox]::Show("O container foi iniciado e o Streamlit está rodando.")
@@ -107,7 +108,7 @@ $buttonStart.Add_Click({
 $buttonExit.Add_Click({
     # Pausa o container escolhido
     if ($checkbox1.Checked) {
-        Start-Process "docker" -ArgumentList "pause 6df053478b9e"
+        Start-Process "docker" -ArgumentList "pause e5e103b53684"
     }
     elseif ($checkbox2.Checked) {
         Start-Process "docker" -ArgumentList "pause 4fg849564j8s"

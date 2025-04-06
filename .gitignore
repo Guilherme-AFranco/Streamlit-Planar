@@ -1,14 +1,5 @@
-__localcode
-.DS_Store
-chromedriver
-mysql_data
-.env
-venv_Steamlit
-.streamlit
-Capturas
-Calibration Files
-Teste-streamlit_copy_6.ipynb
 Teste.ipynb
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
