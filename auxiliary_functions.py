@@ -1,14 +1,4 @@
-from nptdms import TdmsFile
-from plotly.subplots import make_subplots
-import numpy as np
-import streamlit as st
-import pandas as pd
-import plotly.graph_objects as go
-import os
-import concurrent.futures
-import re
-
-from db_functions import *
+from packs import *
 
 # Lê todos os arquivos em uma pasta e retorna o full path
 def dirList(directory):
@@ -61,9 +51,6 @@ def catchData(file):
             if result is not None:
                 dfList.append(result)
     return dfList
-
-
-
 
 #Corrigir para que aceite MAIS DO QUE 16 Rx
 # Insere os dados do sensor planar no banco de dados
@@ -131,33 +118,6 @@ def valueExtract(valor, stringFormat="simple"):
         return valor
     else:
         return valor
-
-# Coleta dos dados dos cilindros para calibração
-def importData(data):
-    engine = SQLEngine()
-    for value in data:
-        data[value] = {item: None for item in data[value]}
-    for dataName in data:
-        for dataDF in data[dataName]:
-            query = f'SELECT * FROM {dataDF}'
-            data[dataName][dataDF] = pd.read_sql(query, con=engine)
-            data[dataName][dataDF] = data[dataName][dataDF][[col for col in data[dataName][dataDF].columns if col.startswith('Rx')]]
-    return data
-
-
-
-# Dá pra integrar junto com a parte do código de getParameters
-# Coleta dos dados do VH para calibração
-def vhData(vhName):
-    engine = SQLEngine()
-    query = f'SELECT * FROM {vhName}'
-    vh = {f"{vhName}": pd.read_sql(query, con=engine)}
-    vh[vhName] = -1*vh[vhName][[col for col in vh[vhName].columns if col.startswith('Rx')]]
-    rx = len(vh[vhName].keys())
-    vhMax = vh[vhName].values.reshape(32, rx, int(len(vh[vhName])/32))  
-    conv = 2 / (2**rx - 1)
-    vhMax = np.mean(vhMax * conv, axis=2)
-    return vhMax,conv,rx
 
 # Obtenção dos parametros de mínimo e média de calibração
 def getParameters(data, vhMax, conv, rx, tx):

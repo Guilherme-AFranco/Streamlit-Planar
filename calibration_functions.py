@@ -1,4 +1,4 @@
-from auxiliary_functions import *
+from packs import *
 from db_functions import *
 
 # Análise de dados para geração ds curvas de calibração e obtenção dos parâmetros de média e minimo da calibração.

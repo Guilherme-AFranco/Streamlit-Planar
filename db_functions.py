@@ -1,4 +1,5 @@
-from Auxiliary_Functions import *
+from packs import *
+from auxiliary_functions import *
 
 # Cria a conecção com o banco de dados a partir da biblioteca sqlalchemy (facilita a interação com o DB - consultas complexas)
 def SQLEngine():
@@ -56,6 +57,31 @@ def excludeFiles(filePath):
             )
             cursor.execute(sql)
         connection.commit()
+
+# Coleta dos dados dos cilindros para calibração
+def importData(data):
+    engine = SQLEngine()
+    for value in data:
+        data[value] = {item: None for item in data[value]}
+    for dataName in data:
+        for dataDF in data[dataName]:
+            query = f'SELECT * FROM {dataDF}'
+            data[dataName][dataDF] = pd.read_sql(query, con=engine)
+            data[dataName][dataDF] = data[dataName][dataDF][[col for col in data[dataName][dataDF].columns if col.startswith('Rx')]]
+    return data
+
+# Dá pra integrar junto com a parte do código de getParameters
+# Coleta dos dados do VH para calibração
+def vhData(vhName):
+    engine = SQLEngine()
+    query = f'SELECT * FROM {vhName}'
+    vh = {f"{vhName}": pd.read_sql(query, con=engine)}
+    vh[vhName] = -1*vh[vhName][[col for col in vh[vhName].columns if col.startswith('Rx')]]
+    rx = len(vh[vhName].keys())
+    vhMax = vh[vhName].values.reshape(32, rx, int(len(vh[vhName])/32))  
+    conv = 2 / (2**rx - 1)
+    vhMax = np.mean(vhMax * conv, axis=2)
+    return vhMax,conv,rx
 
 # Insere os coeficientes de calibração no banco de dados
 def insertMatrix(calPixel, matrixName):
