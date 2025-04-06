@@ -1,3 +1,5 @@
+import time
+from PIL import Image
 from sqlalchemy import create_engine
 from nptdms import TdmsFile
 from plotly.subplots import make_subplots

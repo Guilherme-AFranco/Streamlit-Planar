@@ -1,8 +1,4 @@
-import pandas as pd
-import streamlit as st
-import time
-from PIL import Image
-
+from packs import *
 from auxiliary_functions import *
 from calibration_functions import *
 
@@ -27,7 +23,7 @@ while True:
         df = pd.read_sql(sql, con=engine)
         break
     except Exception as e:
-        statusMessage.write("O aplicativo Docker ainda está processando. Tentando novamente em 5 segundos...")
+        statusMessage.write(f"O aplicativo Docker ainda está processando. Tentando novamente em 5 segundos... {e}")
         time.sleep(4)
         statusMessage.empty()
         time.sleep(1)
@@ -122,25 +118,25 @@ elif page == "⚙️ Gerador de matriz de calibração":
             st.session_state.matrix1Fig = plotCalib(thickValue, voltage)
         else:
             st.write("Coeficientes inválidos / não selecionados.")
-        if st.session_state.matrix1Fig:
-            col2 = st.columns(2)
-            with col2[0]:
-                st.plotly_chart(st.session_state.matrix1Fig, use_container_width=True)
-            with col2[1]:
-                with st.form(key='save_form'):
-                    calName = st.text_input("Nome do arquivo de calibração (ex.: Matriz_calibXX)")
-                    submit = st.form_submit_button(label='Salvar equação no banco de dados')
-                    if submit and calName:
-                        statusMessage = st.empty()
-                        statusMessage.write("Incluindo matriz no banco de dados...")
-                        try:
-                            insertMatrix(st.session_state.calPixel, calName)
-                            statusMessage.empty()
-                            st.write("Matriz incluida.")
-                        except:
-                            st.write("Nome incluso incorretamente.")
-        else:
-            st.write("Gere as curvas antes.")
+    if st.session_state.matrix1Fig:
+        col2 = st.columns(2)
+        with col2[0]:
+            st.plotly_chart(st.session_state.matrix1Fig, use_container_width=True)
+        with col2[1]:
+            with st.form(key='save_form'):
+                calName = st.text_input("Nome do arquivo de calibração (ex.: Matriz_calibXX)")
+                submit = st.form_submit_button(label='Salvar equação no banco de dados')
+                if submit and calName:
+                    statusMessage = st.empty()
+                    statusMessage.write("Incluindo matriz no banco de dados...")
+                    try:
+                        insertMatrix(st.session_state.calPixel, calName)
+                        statusMessage.empty()
+                        st.write("Matriz incluida.")
+                    except:
+                        st.write("Nome incluso incorretamente.")
+    else:
+        st.write("Gere as curvas antes.")
     col3 = st.columns(3)
     with col3[0]:
         matrixNames = df[df['Tables_in_base_de_dados'].str.startswith('Matriz')]['Tables_in_base_de_dados'].reset_index(drop=True)
