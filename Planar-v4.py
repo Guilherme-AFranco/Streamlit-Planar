@@ -187,8 +187,9 @@ elif page == "⚙️ Gerador de matriz de calibração":
             st.plotly_chart(st.session_state.matrix2Fig, use_container_width=True)
             if 'matrixCal' in st.session_state and st.session_state.rxSelected:
                 st.write('Equação da curva:')
-                rxName = [f'Rx{st.session_state.rxSelected-1:02d}']
-                st.write(f'f(x) = {st.session_state.matrixCal[matrixNames[4]][rxName].mean().values[0]:.2e}.x^4+{st.session_state.matrixCal[matrixNames[3]][rxName].mean().values[0]:.2e}.x^3+{st.session_state.matrixCal[matrixNames[2]][rxName].mean().values[0]:.2e}.x^2+{st.session_state.matrixCal[matrixNames[1]][rxName].mean().values[0]:.2e}.x+{st.session_state.matrixCal[matrixNames[0]][rxName].mean().values[0]:.2e}')
+                matrixFilteredNames = [value for value in matrixNames if value.startswith(matrixThickness)]
+                rxName = [f'Rx{st.session_state.rxSelected:02d}']
+                st.write(f'f(x) = {st.session_state.matrixCal[matrixFilteredNames[4]][rxName].mean().values[0]:.2e}.x^4+{st.session_state.matrixCal[matrixFilteredNames[3]][rxName].mean().values[0]:.2e}.x^3+{st.session_state.matrixCal[matrixFilteredNames[2]][rxName].mean().values[0]:.2e}.x^2+{st.session_state.matrixCal[matrixFilteredNames[1]][rxName].mean().values[0]:.2e}.x+{st.session_state.matrixCal[matrixFilteredNames[0]][rxName].mean().values[0]:.2e}')
                 st.write('Onde:')
                 st.write('x: espessura de filme; f(x): tensão.')
 

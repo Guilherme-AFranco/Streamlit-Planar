@@ -89,7 +89,7 @@ def insertMatrix(calPixel, matrixName):
     coefs = ["a","b","c","d","e"]
     placeholders = ", ".join(["%s"] * len(calPixel[0,:,0]))
     with connection:
-        rxColumns = ", ".join([f"Rx{i:02} FLOAT" for i in range(len(calPixel[0,:,0]))])
+        rxColumns = ", ".join([f"Rx{i+1:02} FLOAT" for i in range(len(calPixel[0,:,0]))])
         for idx, coef in enumerate(coefs):
             table_name = f'{matrixName}_{coefs[idx]}'
             with connection.cursor() as cursor:
@@ -101,7 +101,7 @@ def insertMatrix(calPixel, matrixName):
                 """
                 cursor.execute(sql)
             connection.commit()
-        rxColumns = ", ".join([f"Rx{i:02}" for i in range(len(calPixel[0, :, 0]))])
+        rxColumns = ", ".join([f"Rx{i+1:02}" for i in range(len(calPixel[0, :, 0]))])
         for idx, coef in enumerate(coefs):
             table_name = f'{matrixName}_{coef}'
             data_list = [
