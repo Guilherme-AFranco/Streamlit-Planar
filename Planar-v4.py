@@ -195,12 +195,12 @@ elif page == "⚙️ Gerador de matriz de calibração":
 
 # PÁGINA 3
 elif page == "🔍 Análise dos dados adquiridos":
-    st.write("A análises desta seção será realizadas sem a presença do ajuste pelo polinômio de calibração.")
+    st.write("A análise dessa seção será realizada sem a presença do ajuste pelo polinômio de calibração.")
     cols = st.columns(4)
     names = df[df['Tables_in_base_de_dados'].str.contains(r'^\d')]['Tables_in_base_de_dados']
     with cols[0]:
         filteredThickness = {}
-        thicknessSelect = [st.selectbox('Selecione a espessura da calibração', names.apply(lambda x: valueExtract(x)).unique().tolist())]
+        thicknessSelect = [st.selectbox('Selecione a coleta de análise', names.apply(lambda x: valueExtract(x)).unique().tolist())]
         try:
             for value in thicknessSelect:
                 filteredThickness[value] = df[df['Tables_in_base_de_dados'].apply(lambda x: x.startswith(value))]['Tables_in_base_de_dados'].tolist()
