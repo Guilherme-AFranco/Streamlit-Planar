@@ -274,6 +274,9 @@ def find_real_roots(coefficients, y):
     roots = np.roots(coefficients)
     real_roots = roots[np.isreal(roots)].real
     real_roots = real_roots[real_roots > 0]
+    real_roots = real_roots[real_roots < 2600]
+    real_roots[real_roots < 400] = 400
+    real_roots[real_roots > 2200] = 2200
     return real_roots
 
 def analysisParameters(data, matrixCal, matrixName, vhMax, rx, tx, conv):
@@ -305,7 +308,7 @@ def analysisParameters(data, matrixCal, matrixName, vhMax, rx, tx, conv):
                     real_roots = find_real_roots(coefficients.copy(), y)
                     if real_roots.shape[0] == 0:
                         real_roots = 2200
-                    elif real_roots.shape[0] >= 2:
+                    elif real_roots.shape[0] > 1:
                         real_roots = real_roots[-1]
                     else:
                         real_roots = real_roots[0]
