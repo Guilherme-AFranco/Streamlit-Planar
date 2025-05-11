@@ -264,7 +264,7 @@ elif page == "📈 Análise em função do polinômio":
         if st.session_state.analysis and not st.session_state.fitAnalysis.empty and not st.session_state.meanRc.empty and st.session_state.rx:
             try:
                 for value in st.session_state.meanRc:
-                    fig = basicPlot(st.session_state.analysis[next(iter(st.session_state.analysis))],st.session_state.fitAnalysis[next(iter(st.session_state.fitAnalysis))],st.session_state.meanRc[next(iter(st.session_state.meanRc))],st.session_state.rx,tx,type='fit')
+                    fig = basicPlot(st.session_state.analysis[next(iter(st.session_state.analysis))][value],st.session_state.fitAnalysis[value],st.session_state.meanRc[value],st.session_state.rx,tx,type='fit')
                     st.plotly_chart(fig)
             except:
                 st.write("Erro na plotagem, verifique se a análise é coerente.")

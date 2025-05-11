@@ -34,5 +34,5 @@ def analysisGenerator(analysisName, vhName, matrixName, tx):
             if not analysis[key][value].shape[1] == len(rxValues):
                 st.write('As amostras escolhidas não possuem o mesmo número de canais Rx que o polinômio.')
                 return
-    fitAnalysis, meanRc = analysisParameters(analysis, matrixCal, vhMax, rx, tx, conv)
+    fitAnalysis, meanRc = analysisParameters(analysis, matrixCal, matrixName, vhMax, rx, tx, conv)
     return analysis, fitAnalysis, meanRc, rx

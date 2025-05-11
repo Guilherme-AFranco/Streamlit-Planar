@@ -163,7 +163,7 @@ def polyFit(min, tx, rx, nPoints):
     thickness = np.array(thickness)
     fit = np.polyfit(thickness, pixelValues, 4)
     fit = np.poly1d(fit)
-    thickValues = np.linspace(0, thickness.max(), nPoints)
+    thickValues = np.linspace(thickness.min(), thickness.max(), nPoints)
     voltage = fit(thickValues)
     return fit, thickValues, voltage
 
@@ -195,7 +195,7 @@ def calCurve2(matrix):
     for txIdx in range(tx):
         for rxIdx in range(len(rxNames)):
             fit1 = np.poly1d(fit[txIdx,rxIdx])
-            thickValue = np.linspace(0, 2200, Npoints)
+            thickValue = np.linspace(400, 2200, Npoints)
             voltage[txIdx,rxIdx,:] = fit1(thickValue)
     return thickValue, voltage
 
@@ -226,20 +226,19 @@ def basicPlot(data, minRx, meanRc, rx, tx, type):
         fig = make_subplots(rows=1, cols=3, subplot_titles=["GIF", "Média", "Mínimo"],shared_yaxes=False, horizontal_spacing=0.05)
     elif type == 'fit':
         fig = make_subplots(rows=1, cols=3, subplot_titles=["GIF", "Média", "Média calibrada"],shared_yaxes=False, horizontal_spacing=0.05)
-    fig.add_trace(go.Heatmap(z=data[next(iter(data))][10:(10+tx), :, 0],x=rótulos_x,y=rótulos_y,
+    fig.add_trace(go.Heatmap(z=data[10:(10+tx), :, 0],x=rótulos_x,y=rótulos_y,
                              colorscale='Blues',colorbar=dict(title="", thickness=10, len=1.1, x=0.3, tickformat=".2f")), row=1, col=1)
     frames = []
-    for value in data:
-        num_coletas = data[value].shape[2]
-        for fValue in range(num_coletas):
-            frame_data = data[value][10:(10+tx), :, fValue]
-            frames.append(go.Frame(data=[go.Heatmap(z=frame_data,x=rótulos_x,y=rótulos_y,colorscale='Blues')]))
+    num_coletas = data.shape[2]
+    for fValue in range(num_coletas):
+        frame_data = data[10:(10+tx), :, fValue]
+        frames.append(go.Frame(data=[go.Heatmap(z=frame_data,x=rótulos_x,y=rótulos_y,colorscale='Blues')]))
     fig.update(frames=frames)
     heatmap2 = go.Heatmap(z=np.vstack(meanRc.values).T, x=rótulos_x, y=rótulos_y,
                           colorscale='Blues',showscale=True, colorbar=dict(title="", thickness=10, len=1.1, x=0.65, tickformat=".2f"))
     fig.add_trace(heatmap2, row=1, col=2)
     heatmap3 = go.Heatmap(z=np.vstack(minRx.values).T, x=rótulos_x, y=rótulos_y,
-                          colorscale='Blues',showscale=True, colorbar=dict(title="", thickness=10, len=1.1, x=1, tickformat=".2f"))
+                          colorscale='Blues',showscale=True, colorbar=dict(title="", thickness=10, len=1.1, x=1))
     fig.add_trace(heatmap3, row=1, col=3)
     fig.update_layout(
         title={'text': 'Análise visual dos valores para calibração','y': 0.9,'x': 0.5,'xanchor': 'center','yanchor': 'top'},
@@ -270,7 +269,14 @@ def basicPlot(data, minRx, meanRc, rx, tx, type):
     )
     return fig
 
-def analysisParameters(data, matrixCal, vhMax, rx, tx, conv):
+def find_real_roots(coefficients, y):
+    coefficients[-1] -= y
+    roots = np.roots(coefficients)
+    real_roots = roots[np.isreal(roots)].real
+    real_roots = real_roots[real_roots > 0]
+    return real_roots
+
+def analysisParameters(data, matrixCal, matrixName, vhMax, rx, tx, conv):
     meanRc = {}
     fit = {}
     coefName = list(matrixCal.keys())
@@ -289,7 +295,23 @@ def analysisParameters(data, matrixCal, vhMax, rx, tx, conv):
             cm[cm>1] = 1
             RC = cm[10:(10+tx),:,:]
             mean_Rc = np.mean(RC,axis=2)
-            fitResult = (sum(matrixCal[coefName[i]] * mean_Rc**i for i in range(5))).values
+            
+            fitResult = np.empty((13, 16), dtype=object)
+            for i in range(13):
+                for j in range(16):
+                    coefficients = [matrixCal[matrixName[k]][f'Rx{j+1:02d}'][i] for k in range(5)]
+                    coefficients = np.array(coefficients).flatten()
+                    y = mean_Rc[i, j]
+                    real_roots = find_real_roots(coefficients.copy(), y)
+                    if real_roots.shape[0] == 0:
+                        real_roots = 2200
+                    elif real_roots.shape[0] >= 2:
+                        real_roots = real_roots[-1]
+                    else:
+                        real_roots = real_roots[0]
+                    fitResult[i, j] = real_roots
+            # fitResult = (sum(matrixCal[coefName[i]] * mean_Rc**i for i in range(5))).values
+            
             for i in range(mean_Rc.shape[1]):
                 meanRc[thickDF][f'Rx{i:02d}'] = mean_Rc[:,i]
                 fit[thickDF][f'Rx{i:02d}'] = fitResult[:,i]
