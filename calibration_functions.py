@@ -2,24 +2,19 @@ from packs import *
 from db_functions import *
 
 # Análise de dados para geração ds curvas de calibração e obtenção dos parâmetros de média e minimo da calibração.
-def calibGenerator(thickName,vhName,tx,rx=None,extraAnalisys=None):
-    for value in thickName:
-        if not rx:
-            rx = len(thickName[value])
-        if rx != len(thickName[value]):
-            st.write("Arquivos de calibração de diferentes tamanhos.")
-            return
+def calibGenerator(thickName,vhName,tx,rx=None,extraAnalisys=None,type=None):
     thick = importData(thickName)
     vhMax, conv, vhRx = vhData(vhName)
-    if rx != vhRx:
+    # if rx != vhRx:
+    if rx and rx != vhRx:
         st.write("Arquivos de calibração com Rx diferente do VH.")
         return
-    minRx, meanRc = getParameters(thick, vhMax, conv, rx, tx)
+    minRx, data = getParameters(thick, vhMax, vhRx, tx, type)
     if extraAnalisys == 'Poly':
-        calPixel, thickValue, voltage = calCurve1(minRx,tx,rx)
-        return calPixel, thickValue, voltage
+        calPixel, Volt, thick, pix = calCurve1(minRx, tx, vhRx)
+        return calPixel, Volt, thick, pix
     else:
-        return minRx, meanRc, thick
+        return minRx, data, conv
     
 # Criação dos dados para média simples e média calibrada para as análises.
 def analysisGenerator(analysisName, vhName, matrixName, tx):

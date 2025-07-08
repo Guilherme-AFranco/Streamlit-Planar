@@ -50,18 +50,12 @@ with st.sidebar:
 if page == "📂 Inclusão/Exclusão de arquivos":
     cols = st.columns(3)
     with cols[0]:
-        analysisType = st.radio("Inclusão de arquivos para:", ("Análise", "Calibração"),horizontal=True)
-        if analysisType == "Calibração":
-            Rx = st.number_input("Digite o número de canais Rx usado no sensor planar:", step=1, value=0)
         folderPath = st.text_input("Digite o caminho para inserir os arquivos (ex.: E:\\Planar\\Calib):")
         if st.button('Incluir arquivos') and folderPath:
             try:
                 statusMessage = st.empty()
                 statusMessage.write("Realizando inclusão dos arquivos selecionados...")
-                if analysisType=="Calibração":
-                    insertFiles(folderPath, Rx)
-                else:
-                    insertFiles(folderPath)
+                insertFiles(folderPath)
                 statusMessage.empty()
                 st.write("Arquivos carregados corretamente.")
             except:
@@ -81,15 +75,16 @@ if page == "📂 Inclusão/Exclusão de arquivos":
     with cols[2]:
         st.write(df['Arquivos alocados'])
     st.write('''
-    Obs. 1: Os nomes dos arquivos de calibração a incluir devem ser no formato \'XXXu-YY\'. \n
-    Onde XXX é a espessura do cilindro de calibração (400, 520, ...) e YY é a coleta realizada (00, 01, 02, 03, ...). \n
-    Obs. 2: Para inclusão de arquivos de calibração, é necessário a inclusão da quantidade de arquivos referente à quantidade de canais de recepção (Rx) do projeto. \n
-    Isso se deve à necessidade de obter uma curva de calibração para cada canal (ou seja, cada arquivo refere-se ao teste onde o cilindro está posicionado na faixa de recepção.
+    Obs. 1: Os nomes dos arquivos de calibração a incluir devem ser no formato \'XXXXu-YY\'. \n
+    Onde XXXX é a espessura do cilindro de calibração (0400, 0520, ...) e YY é a coleta da faixa realizada (00, 01, 02, 03, ...) para o caso de calibração por faixas, ou amostra realizada (a1, a2, ...) para a calibração por deslizamento dos cilíndros. \n
     ''')
+    # Obs. 2: Para inclusão de arquivos de calibração por faixa, é necessário a inclusão da quantidade de arquivos referente à quantidade de canais de recepção (Rx) do projeto. \n
+    # Isso se deve à necessidade de obter uma curva de calibração para cada canal (ou seja, cada arquivo refere-se ao teste onde o cilindro está posicionado na faixa de recepção.
 
 # PÁGINA 2
 elif page == "⚙️ Gerador de matriz de calibração":
     col1 = st.columns(3)
+    selectedVh = []
     with col1[0]:
         thicknessFilter = df[df['Tables_in_base_de_dados'].str.contains(r'^\d')]['Tables_in_base_de_dados']
         thicknessSelect = st.multiselect('Selecione a(s) espessura(s) de cilindros usados para calibração.', thicknessFilter.apply(lambda x: valueExtract(x)).unique().tolist())
@@ -101,7 +96,9 @@ elif page == "⚙️ Gerador de matriz de calibração":
         st.write("Verifique se há arquivos para análise.")
     with col1[1]:
         vhFilter = df[df['Tables_in_base_de_dados'].str.startswith('VH')]['Tables_in_base_de_dados']
-        selectedVh = st.selectbox('Selecione o VH coletado.', vhFilter)
+        selectedVh.append(st.selectbox('Selecione o VH inicial coletado.', vhFilter))
+        selectedVh.append(st.selectbox('Selecione o VH final coletado.', vhFilter))
+        analise = st.selectbox('Selecione o tipo de análise a realizar.', ['Faixas', 'Amostras'])
         tx = st.number_input("Digite o valor de Tx usado no sensor planar:", step=1, value=0)
     if 'calPixel' not in st.session_state:
         st.session_state.calPixel = st.session_state.matrix1Fig = None
@@ -110,12 +107,12 @@ elif page == "⚙️ Gerador de matriz de calibração":
             statusMessage = st.empty()
             statusMessage.write("Gerando matriz de calibração...")
             try:
-                st.session_state.calPixel, thickValue, voltage = calibGenerator(filteredThickness, selectedVh, tx, extraAnalisys='Poly')
+                st.session_state.calPixel, voltage, thickValue, pixelValue = calibGenerator(filteredThickness, selectedVh, tx, extraAnalisys='Poly', type=analise)
                 statusMessage.empty()
                 st.write("Curvas de calibração geradas")
-            except:
-                st.write("Erro na geração de calibração, verifique se os dados estão corretos.")
-            st.session_state.matrix1Fig = plotCalib(thickValue, voltage)
+            except Exception as e:
+                st.write("Erro na geração de calibração, verifique se os dados estão corretos.", e)
+            st.session_state.matrix1Fig = plotCalib(st.session_state.calPixel)
         else:
             st.write("Coeficientes inválidos / não selecionados.")
     if st.session_state.matrix1Fig:
@@ -145,11 +142,11 @@ elif page == "⚙️ Gerador de matriz de calibração":
     if 'curves' not in st.session_state:
         st.session_state.curves = False
     if "rxSelected" not in st.session_state and "rxValues" not in st.session_state:
-        st.session_state.rxValues = st.session_state.rxSelected = None
+        st.session_state.rxValues = st.session_state.rxSelected = st.session_state.txValues = None
     if st.button("Analise"):
         calFiltered = df[df['Tables_in_base_de_dados'].str.startswith(matrixThickness)]['Tables_in_base_de_dados'].tolist()
         try:
-            matrixCal, st.session_state.rxValues = importCal(calFiltered)
+            matrixCal, st.session_state.rxValues, st.session_state.txValues = importCal(calFiltered)
             st.session_state.matrixCal = matrixCal
         except:
             st.write("Erro na análise da matriz.")
@@ -168,30 +165,55 @@ elif page == "⚙️ Gerador de matriz de calibração":
             with col5[0]:
                 rx_option = st.selectbox("Selecione um canal Rx:", st.session_state.rxValues)
                 rxSelected = st.session_state.rxValues.index(rx_option)
+                tx_option = st.selectbox("Selecione um canal Tx:", st.session_state.txValues)
+                txSelected = st.session_state.txValues.index(tx_option)
             with col5[1]:
                 st.markdown("<br>", unsafe_allow_html=True)
-                if st.button(f"Gerar curva"):
+                if st.button(f"Gerar curvas par Tx-Rx"):
+                    st.session_state.rxSelected = rxSelected+1
+                    st.session_state.txSelected = txSelected+1
+                    st.experimental_rerun()
+                if st.button(f"Gerar curvas Rx"):
                     st.session_state.rxSelected = rxSelected+1
                     st.experimental_rerun()
+                if st.button(f"Gerar curvas Tx"):
+                    st.session_state.txSelected = txSelected+1
+                    st.experimental_rerun()
             with col5[2]:
-                if st.button(f"Mostrar todas as curvas"):
+                if st.button(f"Mostrar todas as curvas Rx"):
                     st.session_state.rxSelected = None
                     st.experimental_rerun()
+                if st.button(f"Mostrar todas as curvas Tx"):
+                    st.session_state.txSelected = None
+                    st.experimental_rerun()
         with col4[1]:
-            thickValue, voltage = calCurve2(st.session_state.matrixCal)
-            if st.session_state.rxSelected:
-                matrix2Fig = plotCalib(thickValue, voltage[:,st.session_state.rxSelected-1,:],st.session_state.rxSelected)
+            # thickValue, voltage = calCurve2(st.session_state.matrixCal)
+            fit = calCurve2(st.session_state.matrixCal)
+            if st.session_state.rxSelected and not st.session_state.txSelected:
+                # matrix2Fig = plotCalib(thickValue, voltage[:,st.session_state.rxSelected-1,:],st.session_state.rxSelected)
+                # matrix2Fig = plotCalib(thickValue[:,st.session_state.rxSelected-1,:], voltage,st.session_state.rxSelected)
+                matrix2Fig = plotCalib(fit[:,rxSelected,:],rx=rxSelected)
+            elif st.session_state.txSelected and not st.session_state.rxSelected:
+                matrix2Fig = plotCalib(fit[txSelected,:,:],tx=txSelected)
+            elif st.session_state.rxSelected and st.session_state.txSelected:
+                matrix2Fig = plotCalib(fit[txSelected,rxSelected,:],rx=rxSelected, tx=txSelected)
             else:
-                matrix2Fig = plotCalib(thickValue, voltage)
+                # matrix2Fig = plotCalib(thickValue, voltage)
+                matrix2Fig = plotCalib(fit)
             st.session_state.matrix2Fig = matrix2Fig
             st.plotly_chart(st.session_state.matrix2Fig, use_container_width=True)
-            if 'matrixCal' in st.session_state and st.session_state.rxSelected:
+            if 'matrixCal' in st.session_state and st.session_state.rxSelected and st.session_state.txSelected:
                 st.write('Equação da curva:')
                 matrixFilteredNames = [value for value in matrixNames if value.startswith(matrixThickness)]
-                rxName = [f'Rx{st.session_state.rxSelected:02d}']
-                st.write(f'f(x) = {st.session_state.matrixCal[matrixFilteredNames[4]][rxName].mean().values[0]:.2e}.x^4+{st.session_state.matrixCal[matrixFilteredNames[3]][rxName].mean().values[0]:.2e}.x^3+{st.session_state.matrixCal[matrixFilteredNames[2]][rxName].mean().values[0]:.2e}.x^2+{st.session_state.matrixCal[matrixFilteredNames[1]][rxName].mean().values[0]:.2e}.x+{st.session_state.matrixCal[matrixFilteredNames[0]][rxName].mean().values[0]:.2e}')
+                rxName = f'Rx{st.session_state.rxSelected:02d}'
+                txName = st.session_state.txSelected
+                st.write(f'δ = {st.session_state.matrixCal[matrixFilteredNames[4]][rxName][txName].mean():.2e}.U_dl^4+{st.session_state.matrixCal[matrixFilteredNames[3]][rxName][txName].mean():.2e}.U_dl^3+{st.session_state.matrixCal[matrixFilteredNames[2]][rxName][txName].mean():.2e}.U_dl^2+{st.session_state.matrixCal[matrixFilteredNames[1]][rxName][txName].mean():.2e}.U_dl+{st.session_state.matrixCal[matrixFilteredNames[0]][rxName][txName].mean():.2e}')
                 st.write('Onde:')
-                st.write('x: espessura de filme; f(x): tensão.')
+                # st.write('x: espessura de filme; f(x): tensão.')
+                st.write('U_dl: tensão adimensional; δ: espessura de filme.')
+                st.write(f'Linha de transmissão: Tx{txName:02d}')
+                st.write(f'Linha de recepção: {rxName}')
+                # st.latex(r'x\text{: tensão; }\delta\text{: espessura de filme}')
 
 # PÁGINA 3
 elif page == "🔍 Análise dos dados adquiridos":
@@ -201,6 +223,7 @@ elif page == "🔍 Análise dos dados adquiridos":
     with cols[0]:
         filteredThickness = {}
         thicknessSelect = [st.selectbox('Selecione a coleta de análise', names.apply(lambda x: valueExtract(x)).unique().tolist())]
+        analysisType = st.radio("Análise de arquivos para:", ("Calibração por faixas", "Calibração por deslizamento", "Amostra"))
         try:
             for value in thicknessSelect:
                 filteredThickness[value] = df[df['Tables_in_base_de_dados'].apply(lambda x: x.startswith(value))]['Tables_in_base_de_dados'].tolist()
@@ -217,13 +240,19 @@ elif page == "🔍 Análise dos dados adquiridos":
         if thicknessSelect and selectedVh and tx!=0 and rx!=0:
             statusMessage = st.empty()
             statusMessage.write("Gerando gráficos...")
+
             try:
-                minRx, meanRc, thick = calibGenerator(filteredThickness, selectedVh, tx)
+                if analysisType == "Calibração por faixas":
+                    minRx, thick, conv = calibGenerator(filteredThickness, selectedVh, tx, type='Faixas')
+                elif analysisType == "Calibração por deslizamento":
+                    minRx, thick, conv = calibGenerator(filteredThickness, selectedVh, tx, type='Amostras')
+                else:
+                    minRx, thick, conv = calibGenerator(filteredThickness, selectedVh, tx, type='Analise')
             except:
                 st.write("Erro na análise, verifique se a espessura, VH e valor de tx estão coerentes.")
             statusMessage.empty()
             for _ in range(len(minRx.keys())):
-                fig = basicPlot(thick[next(iter(thick))],minRx[next(iter(minRx))],meanRc[next(iter(meanRc))],rx,tx,type='min')
+                fig = basicPlot(thick[next(iter(thick))][next(iter(thick[next(iter(thick))]))],rx,thick[next(iter(thick))][next(iter(thick[next(iter(thick))]))])
                 st.plotly_chart(fig)
         else:
             st.write("Erro: Arquivos não selecionados.")

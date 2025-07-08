@@ -74,14 +74,27 @@ def importData(data):
 # Coleta dos dados do VH para calibração
 def vhData(vhName):
     engine = SQLEngine()
-    query = f'SELECT * FROM {vhName}'
-    vh = {f"{vhName}": pd.read_sql(query, con=engine)}
-    vh[vhName] = -1*vh[vhName][[col for col in vh[vhName].columns if col.startswith('Rx')]]
-    rx = len(vh[vhName].keys())
-    vhMax = vh[vhName].values.reshape(32, rx, int(len(vh[vhName])/32))  
+    query = f'SELECT * FROM {vhName[0]}'
+    vh1 = {f"{vhName[0]}": pd.read_sql(query, con=engine)}
+    query = f'SELECT * FROM {vhName[1]}'
+    vh2 = {f"{vhName[1]}": pd.read_sql(query, con=engine)}
+    vh1[vhName[0]] = np.abs(vh1[vhName[0]][[col for col in vh1[vhName[0]].columns if col.startswith('Rx')]])
+    vh2[vhName[1]] = np.abs(vh2[vhName[1]][[col for col in vh2[vhName[1]].columns if col.startswith('Rx')]])
+    rx = len(vh1[vhName[0]].keys())
+    vhMax = (vh1[vhName[0]] + vh2[vhName[1]])/2
+    vhMax = np.transpose(vhMax.values.reshape(int(len(vhMax)/rx),rx,16),(1,2,0))
     conv = 2 / (2**rx - 1)
-    vhMax = np.mean(vhMax * conv, axis=2)
+    vhMax = np.double(np.mean(vhMax, axis=2))
     return vhMax,conv,rx
+
+# Coleta do valor de saturação da fase gasosa
+def vlData(vlName):
+    engine = SQLEngine()
+    query = f'SELECT * FROM {vlName[0]}'
+    vl = {f"{vlName[0]}": pd.read_sql(query, con=engine)}
+    vl[vlName[0]] = np.abs(vl[vlName[0]][[col for col in vl[vlName[0]].columns if col.startswith('Rx')]])
+    vlMax = np.double(np.mean(vl[vlName[0]], axis=2))
+    return vlMax
 
 # Insere os coeficientes de calibração no banco de dados
 def insertMatrix(calPixel, matrixName):
@@ -89,7 +102,7 @@ def insertMatrix(calPixel, matrixName):
     coefs = ["a","b","c","d","e"]
     placeholders = ", ".join(["%s"] * len(calPixel[0,:,0]))
     with connection:
-        rxColumns = ", ".join([f"Rx{i+1:02} FLOAT" for i in range(len(calPixel[0,:,0]))])
+        rxColumns = ", ".join([f"Rx{i+1:02} DOUBLE" for i in range(len(calPixel[0,:,0]))])
         for idx, coef in enumerate(coefs):
             table_name = f'{matrixName}_{coefs[idx]}'
             with connection.cursor() as cursor:
@@ -120,5 +133,6 @@ def importCal(data):
         query = f'SELECT * FROM {value}'
         matrix[value] = pd.read_sql(query, con=engine)
         rxValues = [col for col in matrix[value].columns if col.startswith('Rx')]
+        txValues = [f'Tx{i+1:02d}' for i in range(13)]
         matrix[value] = matrix[value][rxValues]
-    return matrix, rxValues
+    return matrix, rxValues, txValues
