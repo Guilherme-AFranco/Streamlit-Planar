@@ -15,12 +15,14 @@ def calibGenerator(thickName,vhName,tx,rx=None,extraAnalisys=None,type=None):
         return calPixel, Volt, thick, pix
     else:
         return minRx, data, conv
-    
+
 # Criação dos dados para média simples e média calibrada para as análises.
 def analysisGenerator(analysisName, vhName, matrixName, tx):
     vhMax, conv, rx = vhData(vhName)
     analysis = importData(analysisName)
-    matrixCal, rxValues = importCal(matrixName)
+    matrixCal, rxValues, txValues = importCal(matrixName)
+    fit = calCurve2(matrixCal)
+
     for key in analysisName.keys():
         for value in analysisName[key]:
             if not analysis[key][value].shape[1] == rx:
@@ -29,5 +31,5 @@ def analysisGenerator(analysisName, vhName, matrixName, tx):
             if not analysis[key][value].shape[1] == len(rxValues):
                 st.write('As amostras escolhidas não possuem o mesmo número de canais Rx que o polinômio.')
                 return
-    fitAnalysis, meanRc = analysisParameters(analysis, matrixCal, matrixName, vhMax, rx, tx, conv)
-    return analysis, fitAnalysis, meanRc, rx
+    fitAnalysis = analysisParameters(analysis, fit, vhMax)
+    return fitAnalysis, rxValues

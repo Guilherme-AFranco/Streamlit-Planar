@@ -4,6 +4,7 @@ from sqlalchemy import create_engine
 from nptdms import TdmsFile
 from plotly.subplots import make_subplots
 from numpy.lib.stride_tricks import sliding_window_view
+from joblib import Parallel, delayed
 import matplotlib.pyplot as plt
 import streamlit as st
 import numpy as np

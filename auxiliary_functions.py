@@ -221,37 +221,16 @@ def calCurve1(minRx, tx, rx):
                 st.write(f'Ocorreu um erro na geração das curvas de ajuste')
     return calPixel, voltageValues, thick, volt
 
-def inverse_fit(y, poly):
-    coeffs = poly - y
-    roots = coeffs.r
-    valid = [r.real for r in roots if np.isreal(r) and 0 <= r.real <= 1]
-    return valid[0] if valid else np.nan
-
 # Curvas de calibração a partir dos coeficientes de calibração
 def calCurve2(matrix):
     matrixNames = list(matrix.keys())
     rxNames = list(matrix[matrixNames[0]])
     tx = len(matrix[matrixNames[0]][rxNames[0]])
     fit = np.zeros([tx, len(rxNames), 5])
-    # Npoints = 100
-    # voltage = np.zeros([tx,len(rxNames),Npoints])
-    # thickValue = np.zeros([tx,len(rxNames),Npoints])
     for rxValue, rxName in enumerate(rxNames):
         fit[:, rxValue, :] = np.column_stack([matrix[matrixNames[i]][rxName] for i in range(5)])
-    # for txIdx in range(tx):
-    #     for rxIdx in range(len(rxNames)):
-    #         fit1 = np.poly1d(fit[txIdx,rxIdx])
-    #         # thickValue = np.linspace(400, 2200, Npoints)
-    #         v1 = inverse_fit(400,fit1)
-    #         v2 = inverse_fit(2200,fit1)
-    #         voltage = np.linspace(v1, v2, Npoints)
-    #         # voltage[txIdx,rxIdx,:] = np.array([inverse_fit(y, fit1) for y in thickValue])
-    #         # voltage[txIdx,rxIdx,:] = fit1(thickValue)
-    #         thickValue[txIdx,rxIdx,:] = fit1(voltage)
-    # return thickValue, voltage
     return fit
 
-# Representação gráfica das curvas de calibração
 # Representação gráfica das curvas de calibração
 def plotCalib(calPixel, rx=None, tx=None):
     x = np.linspace(400, 2200, 200)
@@ -288,39 +267,38 @@ def plotCalib(calPixel, rx=None, tx=None):
 def basicPlot(data, rx, nome):
     rótulos_x = [f'R{i:02}' for i in range(1, rx+1)]
     rótulos_y = [f'T{i:02}' for i in range(1, 16)]
-    fig = make_subplots(rows=1, cols=1, subplot_titles=[nome],shared_yaxes=False, horizontal_spacing=0.05)
+    fig = make_subplots(rows=1, cols=1, shared_yaxes=False, horizontal_spacing=0.05)
     fig.add_trace(go.Heatmap(z=data[:, :, 0],zmin=data.min(),zmax=data.max(),x=rótulos_x,y=rótulos_y,
-                             colorscale='Blues',colorbar=dict(title="", thickness=10, len=1.1, x=0.3, tickformat=".2f")), row=1, col=1)
+                             colorscale='Blues',colorbar=dict(title="", thickness=10, len=1.1, x=1.1, tickformat=".2f")), row=1, col=1)
     frames = []
     num_coletas = data.shape[2]
-    for fValue in range(1,num_coletas,20):
+    for fValue in range(1,num_coletas,1):
         frame_data = data[:, :, fValue]
         frames.append(go.Frame(data=[go.Heatmap(z=frame_data,x=rótulos_x,y=rótulos_y,colorscale='Blues')]))
     fig.update(frames=frames)
     fig.update_layout(
-        title={'text': 'Análise visual 2D','y': 0.9,'x': 0.5,'xanchor': 'center','yanchor': 'top'},
+        width=600,height=400,title={'text': nome,'y': 0.9,'x': 0.5,'xanchor': 'center','yanchor': 'top'},
         paper_bgcolor="black", plot_bgcolor="black", font_color="white", yaxis2=dict(showticklabels=False), yaxis3=dict(showticklabels=False),
         updatemenus=[{"buttons": [{"args": [None, {"frame": {"duration": 200, "redraw": True}, "fromcurrent": True}], "label": "Play", "method": "animate"},
             {"args": [[None], {"frame": {"duration": 0, "redraw": True}, "mode": "immediate", "transition": {"duration": 0}}], "label": "Pause", "method": "animate"}], "direction": "left", "pad": {"r": 10, "t": 87}, "showactive": False, "type": "buttons", "x": 0.1, "xanchor": "right", "y": 0, "yanchor": "top"}])
     return fig
 
-def basicPlot3D_animado(data, rx, tx, nome):
+def basicPlot3D_animado(data, rx, tx, rangeMax, nome):
     rótulos_x = [f'R{i:02}' for i in range(1, rx+1)]
     rótulos_y = [f'T{i:02}' for i in range(1, tx+1)]
     z_data = data[:, :, 0]
     fig = go.Figure(
         data=[go.Surface(
-            z=z_data, x=np.arange(rx), y=np.arange(tx), colorscale='Blues', cmin=0, cmax=2200, colorbar=dict(title=dict(text='Espessura de filme', font=dict(size=16)), tickfont=dict(size=16)))
-            ],
+            z=z_data, x=np.arange(rx), y=np.arange(tx), colorscale='Blues', cmin=0, cmax=rangeMax, colorbar=dict(title="", thickness=10, len=1.1, x=1.1, tickformat=".2f"))],
         frames=[
-            go.Frame(data=[go.Surface(z=data[:, :, i], x=np.arange(rx), y=np.arange(tx), colorscale='Blues', cmin=0, cmax=2200)]) for i in range(0, data.shape[2], 1)
+            go.Frame(data=[go.Surface(z=data[:, :, i], x=np.arange(rx), y=np.arange(tx), colorscale='Blues', cmin=0, cmax=rangeMax)]) for i in range(0, data.shape[2], 1)
         ])
     fig.update_layout(
-        height=800,
-        title=dict(text=f'Analise visual 3D {nome}',font=dict(size=24)), scene=dict(
-            xaxis=dict(title=dict(text='Rx', font=dict(size=18)),tickvals=list(range(rx)),ticktext=rótulos_x,tickfont=dict(size=16)),
-            yaxis=dict(title=dict(text='Tx', font=dict(size=18)),tickvals=list(range(tx)),ticktext=rótulos_y,tickfont=dict(size=16)),
-            zaxis=dict(title=dict(text='Espessura de filme', font=dict(size=18)),range=[0, 2200],tickfont=dict(size=16)),
+        width=600,height=400,
+        title={'text': nome,'y': 0.9,'x': 0.5,'xanchor': 'center','yanchor': 'top'}, scene=dict(
+            xaxis=dict(title=dict(text='Rx'),tickvals=list(range(rx)),ticktext=rótulos_x),
+            yaxis=dict(title=dict(text='Tx'),tickvals=list(range(tx)),ticktext=rótulos_y),
+            zaxis=dict(title=dict(text='Espessura de filme'),range=[0, rangeMax]),
             aspectratio=dict(x=2, y=1, z=1)),
         paper_bgcolor="black",
         font_color="white",
@@ -334,63 +312,37 @@ def basicPlot3D_animado(data, rx, tx, nome):
     )
     return fig
 
-def find_real_roots(coefficients, y):
-    coefficients[-1] -= y
-    roots = np.roots(coefficients)
-    real_roots = roots[np.isreal(roots)].real
-    real_roots = real_roots[real_roots > 0]
-    real_roots = real_roots[real_roots < 2600]
-    real_roots[real_roots < 400] = 400
-    real_roots[real_roots > 2200] = 2200
-    return real_roots
+def resolver_um(tx, rx, z, calPixel, teste1_val):
+    try:
+        coef = calPixel[tx, rx].copy()
+        coef[-1] -= teste1_val
+        raizes = np.roots(coef)
+        raizes_reais = raizes[np.isreal(raizes)].real
+        raizes_validas = raizes_reais[(raizes_reais >= 0) & (raizes_reais <= 2200)]
+    except Exception as e:
+        st.write('Erro no resolver_um',e)
+    return raizes_validas.max() if len(raizes_validas) > 0 else 2200
 
-def analysisParameters(data, matrixCal, matrixName, vhMax, rx, tx, conv):
-    meanRc = {}
-    fit = {}
-    coefName = list(matrixCal.keys())[::-1]
+def analysisParameters(data, matrixCal, vhMax1):
+    posAnalysis = {}
     for dataName in data:
-        meanRc[dataName] = {} # CONFERIR
         for thickDF in data[dataName]:
-            meanRc[thickDF] = {} # CONFERIR
-            fit[thickDF] = {}
-            data[dataName][thickDF] = -1*data[dataName][thickDF]
-            data[dataName][thickDF] = np.transpose(data[dataName][thickDF].values.reshape(int(len(data[dataName][thickDF])/32),32,16),(1,2,0))
-            # data[dataName][thickDF] = data[dataName][thickDF].values.reshape(32, rx, int(len(data[dataName][thickDF])/32))
-            # data[dataName][thickDF] = data[dataName][thickDF][:,:,[i for i in range(data[dataName][thickDF].shape[2]) if i not in list(range(2,data[dataName][thickDF].shape[2],8))]]
-            data[dataName][thickDF] = np.double(data[dataName][thickDF]*conv)
-            x, y, z = data[dataName][thickDF].shape
-            cm = np.zeros((x,y,z))
-            for z_i in np.arange(z):
-                cm[:,:,z_i] = data[dataName][thickDF][:,:,z_i]/vhMax
-                data[dataName][thickDF][:,:,z_i] = cm[:,:,z_i]
-            cm[cm>1] = 1
-            data[dataName][thickDF][data[dataName][thickDF]>1] = 1
-            RC = cm[10:(10+tx),:,:]
-            mean_Rc = np.mean(RC,axis=2)
-            
-            # fitResult = np.empty((13, 16), dtype=object) # Voltage vs Thick
-            # for i in range(13):
-            #     for j in range(16):
-            #         coefficients = [matrixCal[matrixName[k]][f'Rx{j+1:02d}'][i] for k in range(5)]
-            #         coefficients = np.array(coefficients).flatten()
-            #         y = mean_Rc[i, j]
-            #         real_roots = find_real_roots(coefficients.copy(), y)
-            #         if real_roots.shape[0] == 0:
-            #             real_roots = 2200
-            #         elif real_roots.shape[0] > 1:
-            #             real_roots = real_roots[-1]
-            #         else:
-            #             real_roots = real_roots[0]
-            #         fitResult[i, j] = real_roots
-            fitResult = (sum(matrixCal[coefName[i]] * mean_Rc**i for i in range(5))).values # Thick vs Voltage
-            fitResult[fitResult < 400] = 400
-            fitResult[fitResult > 2200] = 2200
-
-            for i in range(mean_Rc.shape[1]):
-                meanRc[thickDF][f'Rx{i+1:02d}'] = mean_Rc[:,i]
-                fit[thickDF][f'Rx{i+1:02d}'] = fitResult[:,i]
-    df_meanRc = pd.DataFrame.from_dict(meanRc,orient='index')
-    df_meanRc = df_meanRc.T
-    df_fit = pd.DataFrame.from_dict(fit,orient='index')
-    df_fit = df_fit.T
-    return df_fit, df_meanRc
+            coleta = np.abs(data[dataName][thickDF])
+            coleta = np.transpose(coleta.values.reshape(coleta.shape[0]//16,16,16),(1,2,0))
+            coleta = np.double(coleta)
+            coleta = np.stack([np.mean(coleta[:, :, i:i+20], axis=2) for i in range(0, coleta.shape[2], 20) if i+20 <= coleta.shape[2]], axis=2)
+            vhMax = np.mean(np.sort(coleta,axis=2)[:,:,-int(coleta.shape[2]*0.05):],axis=2)
+            teste1 = np.zeros(coleta.shape)
+            teste1 = np.abs(coleta) / np.abs(vhMax[:, :, np.newaxis])
+            teste1[teste1 > 1] = 1
+            teste1 = teste1[:13, :, :]
+            x, y, z = teste1.shape
+            resultados = Parallel(n_jobs=-1)(
+                delayed(resolver_um)(tx, rx, zx, matrixCal, teste1[tx, rx, zx])
+                for tx in range(x)
+                for rx in range(y)
+                for zx in range(z)
+            )
+            analysis = np.array(resultados).reshape(x, y, z)
+            posAnalysis[thickDF] = np.stack([np.mean(np.transpose(analysis[:,:,:],(0,1,2))[:, :, i:i+5], axis=2) for i in range(0, np.transpose(analysis[:,:,:],(0,1,2)).shape[2], 5) if i+5 <= np.transpose(analysis[:,:,:],(0,1,2)).shape[2]], axis=2)
+    return posAnalysis

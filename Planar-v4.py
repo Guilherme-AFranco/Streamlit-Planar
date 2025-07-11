@@ -98,6 +98,7 @@ elif page == "⚙️ Gerador de matriz de calibração":
         vhFilter = df[df['Tables_in_base_de_dados'].str.startswith('VH')]['Tables_in_base_de_dados']
         selectedVh.append(st.selectbox('Selecione o VH inicial coletado.', vhFilter))
         selectedVh.append(st.selectbox('Selecione o VH final coletado.', vhFilter))
+    with col1[2]:
         analise = st.selectbox('Selecione o tipo de análise a realizar.', ['Faixas', 'Amostras'])
         tx = st.number_input("Digite o valor de Tx usado no sensor planar:", step=1, value=0)
     if 'calPixel' not in st.session_state:
@@ -141,12 +142,16 @@ elif page == "⚙️ Gerador de matriz de calibração":
 
     if 'curves' not in st.session_state:
         st.session_state.curves = False
-    if "rxSelected" not in st.session_state and "rxValues" not in st.session_state:
-        st.session_state.rxValues = st.session_state.rxSelected = st.session_state.txValues = None
+    if 'rxSelected' not in st.session_state:
+        st.session_state.rxSelected = None
+    if 'txSelected' not in st.session_state:
+        st.session_state.txSelected = None
     if st.button("Analise"):
         calFiltered = df[df['Tables_in_base_de_dados'].str.startswith(matrixThickness)]['Tables_in_base_de_dados'].tolist()
         try:
-            matrixCal, st.session_state.rxValues, st.session_state.txValues = importCal(calFiltered)
+            matrixCal, rxValues, txValues = importCal(calFiltered)
+            st.session_state.txValues = txValues
+            st.session_state.rxValues = rxValues
             st.session_state.matrixCal = matrixCal
         except:
             st.write("Erro na análise da matriz.")
@@ -192,11 +197,11 @@ elif page == "⚙️ Gerador de matriz de calibração":
             if st.session_state.rxSelected and not st.session_state.txSelected:
                 # matrix2Fig = plotCalib(thickValue, voltage[:,st.session_state.rxSelected-1,:],st.session_state.rxSelected)
                 # matrix2Fig = plotCalib(thickValue[:,st.session_state.rxSelected-1,:], voltage,st.session_state.rxSelected)
-                matrix2Fig = plotCalib(fit[:,rxSelected,:],rx=rxSelected)
+                matrix2Fig = plotCalib(fit[:,st.session_state.rxSelected,:],rx=st.session_state.rxSelected)
             elif st.session_state.txSelected and not st.session_state.rxSelected:
-                matrix2Fig = plotCalib(fit[txSelected,:,:],tx=txSelected)
+                matrix2Fig = plotCalib(fit[st.session_state.txSelected,:,:],tx=st.session_state.txSelected)
             elif st.session_state.rxSelected and st.session_state.txSelected:
-                matrix2Fig = plotCalib(fit[txSelected,rxSelected,:],rx=rxSelected, tx=txSelected)
+                matrix2Fig = plotCalib(fit[st.session_state.txSelected,st.session_state.rxSelected,:],rx=st.session_state.rxSelected, tx=st.session_state.txSelected)
             else:
                 # matrix2Fig = plotCalib(thickValue, voltage)
                 matrix2Fig = plotCalib(fit)
@@ -231,7 +236,9 @@ elif page == "🔍 Análise dos dados adquiridos":
             st.write("Verifique se há arquivos para análise")
     vhNames = df[df['Tables_in_base_de_dados'].str.startswith('VH')]['Tables_in_base_de_dados']
     with cols[1]:
-        selectedVh = st.selectbox('Selecione o VH', vhNames)
+        selectedVh = []
+        selectedVh.append(st.selectbox('Selecione o VH inicial', vhNames))
+        selectedVh.append(st.selectbox('Selecione o VH final', vhNames))
     with cols[2]:
         tx = st.number_input("Digite o valor de Tx usado no sensor planar:", step=1, value=0)
     with cols[3]:
@@ -240,7 +247,6 @@ elif page == "🔍 Análise dos dados adquiridos":
         if thicknessSelect and selectedVh and tx!=0 and rx!=0:
             statusMessage = st.empty()
             statusMessage.write("Gerando gráficos...")
-
             try:
                 if analysisType == "Calibração por faixas":
                     minRx, thick, conv = calibGenerator(filteredThickness, selectedVh, tx, type='Faixas')
@@ -251,9 +257,14 @@ elif page == "🔍 Análise dos dados adquiridos":
             except:
                 st.write("Erro na análise, verifique se a espessura, VH e valor de tx estão coerentes.")
             statusMessage.empty()
-            for _ in range(len(minRx.keys())):
-                fig = basicPlot(thick[next(iter(thick))][next(iter(thick[next(iter(thick))]))],rx,thick[next(iter(thick))][next(iter(thick[next(iter(thick))]))])
-                st.plotly_chart(fig)
+            cols = st.columns(2)
+            for value in thick[next(iter(thick))].keys():
+                fig1 = basicPlot(thick[next(iter(thick))][next(iter(thick[next(iter(thick))]))]*conv,rx,value)
+                fig2 = basicPlot3D_animado(thick[next(iter(thick))][next(iter(thick[next(iter(thick))]))]*conv,rx,tx,(thick[next(iter(thick))][next(iter(thick[next(iter(thick))]))]*conv).max(),value)
+                with cols[0]:
+                    st.plotly_chart(fig1)
+                with cols[1]:
+                    st.plotly_chart(fig2)
         else:
             st.write("Erro: Arquivos não selecionados.")
 
@@ -264,36 +275,43 @@ elif page == "📈 Análise em função do polinômio":
     matrixNames = df[df['Tables_in_base_de_dados'].str.startswith('Matriz')]['Tables_in_base_de_dados']
     cols = st.columns(3)
     filteredAnalysis = {}
+    vhFiltered = []
     with cols[0]:
         generalName = st.selectbox('Selecione o nome geral da análise', names.apply(lambda x: valueExtract(x,"regex")).unique().tolist())
         filteredName = names[names.str.startswith(generalName)]
         filteredAnalysis[generalName] = st.multiselect(f'Selecione o(s) arquivo(s) da série "{generalName}"', filteredName.tolist())
     with cols[1]:
         matrixSelected = st.selectbox('Selecione a matriz de calibração', matrixNames.apply(lambda x: valueExtract(x,'matrix')).unique().tolist())
-        vhFiltered = st.selectbox('Selecione o VH', vhNames)
-    with cols[2]:
         tx = st.number_input("Digite o valor de Tx usado no sensor planar:", step=1, value=0)
+    with cols[2]:
+        vhFiltered.append(st.selectbox('Selecione o VH inicial', vhNames))
+        vhFiltered.append(st.selectbox('Selecione o VH final', vhNames))
     try:
         matrixFiltered = df[df['Tables_in_base_de_dados'].str.startswith(matrixSelected)]['Tables_in_base_de_dados'].tolist() # Obtendo todos os arquivos da espessura selecionada
     except:
         st.write("Verifique se há arquivos para análise")
-    if 'analysis' not in st.session_state:
-        st.session_state.analysis = st.session_state.fitAnalysis = st.session_state.meanRc = st.session_state.rx = None
+    if 'fitAnalysis' not in st.session_state:
+        st.session_state.fitAnalysis = st.session_state.rxValues = None
     if st.button('Gerar análise'):
         if filteredAnalysis and vhFiltered and matrixFiltered:
             st.write("Gerando análise...")
             try:
-                st.session_state.analysis,st.session_state.fitAnalysis, st.session_state.meanRc, st.session_state.rx = analysisGenerator(filteredAnalysis,vhFiltered,matrixFiltered,tx)
+                st.session_state.fitAnalysis, st.session_state.rxValues = analysisGenerator(filteredAnalysis,vhFiltered,matrixFiltered,tx)
             except Exception as e:
                 st.write("Erro na análise, verifique se as variáveis inclusas acima estão corretas.",e)
             st.write("Análise gerada")
         else:
             st.write("Selecione todas as caixas de seleção.")
-    if st.session_state.analysis is not None and st.button("Gerar gráficos"):
-        if st.session_state.analysis and not st.session_state.fitAnalysis.empty and not st.session_state.meanRc.empty and st.session_state.rx:
+    cols = st.columns(2)
+    if st.session_state.fitAnalysis is not None and st.button("Gerar gráficos"):
+        if st.session_state.fitAnalysis and st.session_state.rxValues:
             try:
-                for value in st.session_state.meanRc:
-                    fig = basicPlot(st.session_state.analysis[next(iter(st.session_state.analysis))][value],st.session_state.fitAnalysis[value],st.session_state.meanRc[value],st.session_state.rx,tx,type='fit')
-                    st.plotly_chart(fig)
-            except:
-                st.write("Erro na plotagem, verifique se a análise é coerente.")
+                for value in st.session_state.fitAnalysis:
+                    fig1 = basicPlot(st.session_state.fitAnalysis[value],len(st.session_state.rxValues),value)
+                    fig2 = basicPlot3D_animado(st.session_state.fitAnalysis[value],len(st.session_state.rxValues),tx,2200,value)
+                    with cols[0]:
+                        st.plotly_chart(fig1)
+                    with cols[1]:
+                        st.plotly_chart(fig2)
+            except Exception as e:
+                st.write("Erro na plotagem, verifique se a análise é coerente.",e)
