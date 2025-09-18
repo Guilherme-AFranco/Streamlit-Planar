@@ -264,12 +264,12 @@ def plotCalib(calPixel, rx=None, tx=None):
     fig.update_layout(title=title,xaxis_title='Espessura (10⁻⁶ m)',yaxis_title='Tensão (V)',showlegend=True,template='plotly_white',width=800)
     return fig
 
-def basicPlot(data, rx, nome):
+def basicPlot(data, rx, nome,ylab=""):
     rótulos_x = [f'R{i:02}' for i in range(1, rx+1)]
     rótulos_y = [f'T{i:02}' for i in range(1, 16)]
     fig = make_subplots(rows=1, cols=1, shared_yaxes=False, horizontal_spacing=0.05)
     fig.add_trace(go.Heatmap(z=data[:, :, 0],zmin=data.min(),zmax=data.max(),x=rótulos_x,y=rótulos_y,
-                             colorscale='Blues',colorbar=dict(title="", thickness=10, len=1.1, x=1.1, tickformat=".2f")), row=1, col=1)
+                             colorscale='Blues',colorbar=dict(title=ylab, thickness=10, len=1.1, x=1.1, tickformat=".2f")), row=1, col=1)
     frames = []
     num_coletas = data.shape[2]
     for fValue in range(1,num_coletas,1):
@@ -278,12 +278,12 @@ def basicPlot(data, rx, nome):
     fig.update(frames=frames)
     fig.update_layout(
         width=600,height=400,title={'text': nome,'y': 0.9,'x': 0.5,'xanchor': 'center','yanchor': 'top'},
-        paper_bgcolor="black", plot_bgcolor="black", font_color="white", yaxis2=dict(showticklabels=False), yaxis3=dict(showticklabels=False),
+        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font_color="gray", yaxis2=dict(showticklabels=False), yaxis3=dict(showticklabels=False),
         updatemenus=[{"buttons": [{"args": [None, {"frame": {"duration": 200, "redraw": True}, "fromcurrent": True}], "label": "Play", "method": "animate"},
             {"args": [[None], {"frame": {"duration": 0, "redraw": True}, "mode": "immediate", "transition": {"duration": 0}}], "label": "Pause", "method": "animate"}], "direction": "left", "pad": {"r": 10, "t": 87}, "showactive": False, "type": "buttons", "x": 0.1, "xanchor": "right", "y": 0, "yanchor": "top"}])
     return fig
 
-def basicPlot3D_animado(data, rx, tx, rangeMax, nome):
+def basicPlot3D_animado(data, rx, tx, rangeMax, nome,ylab=""):
     rótulos_x = [f'R{i:02}' for i in range(1, rx+1)]
     rótulos_y = [f'T{i:02}' for i in range(1, tx+1)]
     z_data = data[:, :, 0]
@@ -294,14 +294,17 @@ def basicPlot3D_animado(data, rx, tx, rangeMax, nome):
             go.Frame(data=[go.Surface(z=data[:, :, i], x=np.arange(rx), y=np.arange(tx), colorscale='Blues', cmin=0, cmax=rangeMax)]) for i in range(0, data.shape[2], 1)
         ])
     fig.update_layout(
-        width=600,height=400,
+        width=700,height=425,
         title={'text': nome,'y': 0.9,'x': 0.5,'xanchor': 'center','yanchor': 'top'}, scene=dict(
             xaxis=dict(title=dict(text='Rx'),tickvals=list(range(rx)),ticktext=rótulos_x),
             yaxis=dict(title=dict(text='Tx'),tickvals=list(range(tx)),ticktext=rótulos_y),
-            zaxis=dict(title=dict(text='Espessura de filme'),range=[0, rangeMax]),
-            aspectratio=dict(x=2, y=1, z=1)),
-        paper_bgcolor="black",
-        font_color="white",
+            zaxis=dict(title=dict(text=ylab),range=[0, rangeMax]),
+            aspectratio=dict(x=1, y=1, z=0.6),
+            camera=dict(eye=dict(x=1.5, y=1.5, z=0.8)),
+        ),
+        margin=dict(l=0, r=80, t=50, b=0),
+        paper_bgcolor="rgba(0,0,0,0)",
+        font_color="gray",
         updatemenus=[{
             "buttons": [
                 {"args": [None, {"frame": {"duration": 100, "redraw": True}, "fromcurrent": True}],"label": "Play","method": "animate"},

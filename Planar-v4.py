@@ -259,8 +259,8 @@ elif page == "🔍 Análise dos dados adquiridos":
             statusMessage.empty()
             cols = st.columns(2)
             for value in thick[next(iter(thick))].keys():
-                fig1 = basicPlot(thick[next(iter(thick))][next(iter(thick[next(iter(thick))]))]*conv,rx,value)
-                fig2 = basicPlot3D_animado(thick[next(iter(thick))][next(iter(thick[next(iter(thick))]))]*conv,rx,tx,(thick[next(iter(thick))][next(iter(thick[next(iter(thick))]))]*conv).max(),value)
+                fig1 = basicPlot(thick[next(iter(thick))][next(iter(thick[next(iter(thick))]))]*conv,rx,f'Dados pré-processados: {value}',"Tensão (V)")
+                fig2 = basicPlot3D_animado(thick[next(iter(thick))][next(iter(thick[next(iter(thick))]))]*conv,rx,tx,(thick[next(iter(thick))][next(iter(thick[next(iter(thick))]))]*conv).max(),f'Dados pré-processados: {value}',"Tensão (V)")
                 with cols[0]:
                     st.plotly_chart(fig1)
                 with cols[1]:
@@ -307,8 +307,8 @@ elif page == "📈 Análise em função do polinômio":
         if st.session_state.fitAnalysis and st.session_state.rxValues:
             try:
                 for value in st.session_state.fitAnalysis:
-                    fig1 = basicPlot(st.session_state.fitAnalysis[value],len(st.session_state.rxValues),value)
-                    fig2 = basicPlot3D_animado(st.session_state.fitAnalysis[value],len(st.session_state.rxValues),tx,2200,value)
+                    fig1 = basicPlot(st.session_state.fitAnalysis[value],len(st.session_state.rxValues),value, "Espessura de filme")
+                    fig2 = basicPlot3D_animado(st.session_state.fitAnalysis[value],len(st.session_state.rxValues),tx,2200,value, "Espessura de filme")
                     with cols[0]:
                         st.plotly_chart(fig1)
                     with cols[1]:
